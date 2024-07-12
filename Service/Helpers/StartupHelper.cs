@@ -29,7 +29,7 @@ namespace TMP.Service.Helpers
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     NameClaimType = "https://example.com/first_name",
-                    RoleClaimType = "https://example.com//roles",
+                    RoleClaimType = "https://example.com/roles",
                     ValidIssuer = configuration["AuthoritySettings:Authority"],
                     ValidAudience = configuration["AuthoritySettings:Scope"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("4a9db740-2460-471a-b3a1-6d86bb99b279")),
@@ -43,12 +43,12 @@ namespace TMP.Service.Helpers
                         context.HttpContext.User = context.Principal ?? new ClaimsPrincipal();
 
                         var userId = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                        var firstName = context.HttpContext.User.FindFirst(ClaimTypes.GivenName)?.Value;
-                        var lastName = context.HttpContext.User.FindFirst(ClaimTypes.Surname)?.Value;
+                        var firstName = context.HttpContext.User.FindFirst("https://example.com/first_name")?.Value;
+                        var lastName = context.HttpContext.User.FindFirst("https://example.com/last_name")?.Value;
                         var email = context.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
                         //var gender = context.HttpContext.User.FindFirst(ClaimTypes.Gender)?.Value;
-                        //var birthdate = context.HttpContext.User.FindFirst(ClaimTypes.DateOfBirth)?.Value;
-                        //var phoneNumber = context.HttpContext.User.FindFirst("phone_number")?.Value;
+                        var birthdate = context.HttpContext.User.FindFirst(ClaimTypes.DateOfBirth)?.Value;
+                        var phoneNumber = context.HttpContext.User.FindFirst("https://example.com/phone_number")?.Value;
 
 
                         //DateTime birthdateParsed = DateTime.Parse(birthdate);
@@ -64,7 +64,8 @@ namespace TMP.Service.Helpers
                                 Id = userId,
                                 FirstName = firstName,
                                 LastName = lastName,
-                                Email = email,
+                                Email = "",
+                                PasswordHash = ""
                                 //Gender = gender,
                                 //PhoneNumber = phoneNumber ?? " ",
                                 //DateOfBirth = DateOnly.FromDateTime(DateTime.Now)

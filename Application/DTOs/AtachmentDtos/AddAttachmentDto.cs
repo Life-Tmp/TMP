@@ -1,20 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace TMPDomain.Entities
+namespace TMPApplication.DTOs.AtachmentDtos
 {
-    public class Attachment
+    public class AddAttachmentDto
     {
-        public int Id { get; set; }
         public string FileName { get; set; }
         public string FilePath { get; set; }
-        public long FileSize {  get; set; }
+        public long FileSize { get; set; }
         public string FileType { get; set; }
         public int TaskId { get; set; }
-        public DateTime UploadDate { get; set; }
-        public Task Task { get; set; }
     }
 }

@@ -1,11 +1,19 @@
 
 using AutoMapper;
+using Amazon.S3;
+
 using Microsoft.OpenApi.Models;
 using System.Runtime.Loader;
 using TMP.Application.Interfaces;
 using TMP.Persistence;
 using TMP.Service.Helpers;
 using TMPApplication.MapperProfiles;
+using TMPApplication.AttachmentTasks;
+using TMPInfrastructure.Implementations;
+using Amazon.Extensions.NETCore.Setup;
+using Amazon.S3.Transfer;
+using Amazon;
+using Amazon.Runtime;
 namespace TMP.Service;
 
 class Program
@@ -43,12 +51,13 @@ class Program
                         AuthorizationUrl = new Uri("https://dev-pt8z60gtcfp46ip0.us.auth0.com/authorize"),
                         TokenUrl = new Uri("https://dev-pt8z60gtcfp46ip0.us.auth0.com/oauth/token"),
                         Scopes = new Dictionary<string, string> { { "TMP", "Access to admin functionalities in TMP" },
-    { "admin", "Access to administrative functions" } }
+                                                                  { "admin", "Access to administrative functions" } }
                     }
                 }
             });
             c.DocumentFilter<LowercaseDocumentFilter>();
             c.OperationFilter<AuthorizeCheckOperationFilter>();
+            c.MapType<IFormFile>(() => new OpenApiSchema { Type = "file" });
         }
 );
        
@@ -62,12 +71,24 @@ class Program
         builder.Services.AddDbContext<DatabaseService>();
         builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
         //var mapperConfiguration = new MapperConfiguration(
-        //                mc => mc.AddProfile(new UserMappingProfile())); //TODO: Try to find better way to add profiles
+        //                mc => mc.AddProfile(new AttachmentMappingProfile())); //TODO: Try to find better way to add profiles
 
         //IMapper mapper = mapperConfiguration.CreateMapper();
 
         builder.Services.AddAutoMapper(assemblies); //CHECK: I think this is better, just need to TEST
+        var awsOptions = new AWSOptions
+        {
+            Region = RegionEndpoint.GetBySystemName(builder.Configuration["AWS:Region"]),
+            Credentials = new BasicAWSCredentials(
+                    builder.Configuration["AWS:AccessKeyId"],
+                    builder.Configuration["AWS:SecretAccessKey"]
+                )
+        };
 
+        builder.Services.AddDefaultAWSOptions(awsOptions);
+        builder.Services.AddAWSService<IAmazonS3>();
+
+        builder.Services.AddScoped<IAttachmentService, AttachmentService>();
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())
