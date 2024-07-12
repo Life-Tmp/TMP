@@ -10,11 +10,15 @@ namespace TMPDomain.Entities
     {
         public int Id { get; set; }
         public string Name { get; set; }
-
         public string Description { get; set; }
+        public string CreatedByUserId { get; set; }
         public DateTime CreatedAt { get; set; }
-        public List<User> Users { get; set; }
-        public List<Task> Tasks { get; set; }
+        public DateTime UpdatedAt { get; set; }
 
+        public User CreatedByUser { get; set; }
+        public ICollection<Task> Tasks { get; set; }
+        public ICollection<User> Users { get; set; } = new List<User>(); // Add this line
     }
 }
+
+

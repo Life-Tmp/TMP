@@ -1,21 +1,26 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using TMPDomain.Entities;
 
-namespace TMP.Persistence.EntityConfigurations
+namespace Persistence.EntityConfigurations
 {
     public class AttachmentConfiguration : IEntityTypeConfiguration<Attachment>
     {
         public void Configure(EntityTypeBuilder<Attachment> builder)
         {
-            builder.HasKey(x => x.Id);
-            builder.HasIndex(x => x.FileName);
-            builder.HasIndex(x => x.TaskId); // INFO: indexing requires more storage
+            builder.HasKey(a => a.Id);
+
+            builder.Property(a => a.FileName)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            builder.Property(a => a.FilePath)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            builder.HasOne(a => a.Task)
+                .WithMany(t => t.Attachments)
+                .HasForeignKey(a => a.TaskId);
         }
     }
 }

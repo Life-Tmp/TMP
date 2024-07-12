@@ -12,22 +12,19 @@ namespace TMPDomain.Entities
     {
         public int Id { get; set; }
         public string Title { get; set; }
-        public List<User> AssignedUser { get; set; }
-
+        public string Description { get; set; }
+        public TaskPriority Priority { get; set; }
+        public StatusOfTask Status { get; set; }
+        public DateTime DueDate { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
         public int ProjectId { get; set; }
         public Project Project { get; set; }
-
-        public List<Tag> Tags { get; set; }
-        public TaskPriority Priority { get; set; }
-
-        public StatusOfTask Status { get; set; }
-
-        public List<Attachment> Attachments { get; set; }
-        public TaskDuration TaskDuration { get; set; }
-        public List<Comment> Comments { get; set; }
-        public DateTime CreatedAt {  get; set; }
-        public DateTime DueDate { get; set; }
-
+        public ICollection<Comment> Comments { get; set; }
+        public ICollection<Attachment> Attachments { get; set; }
+        public ICollection<TaskDuration> TaskDurations { get; set; }
+        public List<User> AssignedUsers { get; set; }
+        public ICollection<Tag> Tags { get; set; } = new List<Tag>();
     }
 
 }
