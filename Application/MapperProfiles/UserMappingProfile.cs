@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TMPApplication.DTOs.UserDtos;
 using TMPDomain;
 using TMPDomain.Entities;
 namespace TMPApplication.MapperProfiles
@@ -13,6 +14,7 @@ namespace TMPApplication.MapperProfiles
         public UserMappingProfile() 
         {
             CreateMap<UserRegisterDto, User>().ReverseMap();
+            CreateMap<UserProfileDto, User>().ReverseMap();
         }
 
     }
