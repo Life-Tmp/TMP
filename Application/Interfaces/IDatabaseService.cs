@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using TMPDomain.Entities;
 using Task = TMPDomain.Entities.Task;
@@ -16,5 +17,6 @@ namespace TMP.Application.Interfaces
         DbSet<Notification> Notifications { get; set; }
 
         void Save();
+        Task<int> SaveChangesAsync();
     }
 }

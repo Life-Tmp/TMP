@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Task = TMPDomain.Entities.Task;
+using TMP.Application.DTOs.TaskDtos;
+using TMPApplication.DTOs.UserDtos;
 
-namespace TMPDomain.Entities
+namespace TMP.Application.DTOs.ProjectDtos
 {
-    public class Project
+    public class ProjectDto
     {
         public int Id { get; set; }
         public string Name { get; set; }
@@ -15,10 +14,7 @@ namespace TMPDomain.Entities
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
-        public User CreatedByUser { get; set; }
-        public ICollection<Task> Tasks { get; set; }
-        public ICollection<User> Users { get; set; } = new List<User>();
+        public ICollection<TaskDto> Tasks { get; set; } = new List<TaskDto>();
+        public ICollection<UserProfileDto> Users { get; set; } = new List<UserProfileDto>();
     }
 }
-
-
