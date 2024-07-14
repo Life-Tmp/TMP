@@ -14,6 +14,7 @@ using Amazon.Extensions.NETCore.Setup;
 using Amazon.S3.Transfer;
 using Amazon;
 using Amazon.Runtime;
+using TMPApplication.UserTasks;
 namespace TMP.Service;
 
 class Program
@@ -67,7 +68,7 @@ class Program
         builder.Services.Scan(p => p.FromAssemblies(assemblies)
             .AddClasses()
             .AsMatchingInterface());
-
+        builder.Services.AddHttpContextAccessor();
         builder.Services.AddDbContext<DatabaseService>();
         builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
         //var mapperConfiguration = new MapperConfiguration(
@@ -89,7 +90,10 @@ class Program
         builder.Services.AddAWSService<IAmazonS3>();
 
         builder.Services.AddScoped<IAttachmentService, AttachmentService>();
+        builder.Services.AddScoped<IUserService, UserService>();
+        
         var app = builder.Build();
+
 
         if (app.Environment.IsDevelopment())
         {

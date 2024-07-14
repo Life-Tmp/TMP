@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
@@ -28,8 +29,8 @@ namespace TMP.Service.Helpers
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    NameClaimType = "https://example.com/first_name",
-                    RoleClaimType = "https://example.com/roles",
+                    NameClaimType = ClaimTypes.Name, 
+                    RoleClaimType = "http://schemas.xmlsoap.org/ws/2009/09/identity/claims/roles",
                     ValidIssuer = configuration["AuthoritySettings:Authority"],
                     ValidAudience = configuration["AuthoritySettings:Scope"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("4a9db740-2460-471a-b3a1-6d86bb99b279")),
@@ -43,12 +44,12 @@ namespace TMP.Service.Helpers
                         context.HttpContext.User = context.Principal ?? new ClaimsPrincipal();
 
                         var userId = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                        var firstName = context.HttpContext.User.FindFirst("https://example.com/first_name")?.Value;
-                        var lastName = context.HttpContext.User.FindFirst("https://example.com/last_name")?.Value;
+                        var firstName = context.HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+                        var lastName = context.HttpContext.User.FindFirst(ClaimTypes.Surname)?.Value;
                         var email = context.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
                         //var gender = context.HttpContext.User.FindFirst(ClaimTypes.Gender)?.Value;
                         var birthdate = context.HttpContext.User.FindFirst(ClaimTypes.DateOfBirth)?.Value;
-                        var phoneNumber = context.HttpContext.User.FindFirst("https://example.com/phone_number")?.Value;
+                        var phoneNumber = context.HttpContext.User.FindFirst(ClaimTypes.MobilePhone)?.Value;
 
 
                         //DateTime birthdateParsed = DateTime.Parse(birthdate);
@@ -62,10 +63,13 @@ namespace TMP.Service.Helpers
                             var userToBeAdded = new User
                             {
                                 Id = userId,
-                                FirstName = firstName,
-                                LastName = lastName,
-                                Email = "",
-                                PasswordHash = ""
+                                FirstName = firstName ?? "",
+                                LastName = lastName ?? "",
+                                Email = email,
+                                PasswordHash = "",
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow,
+
                                 //Gender = gender,
                                 //PhoneNumber = phoneNumber ?? " ",
                                 //DateOfBirth = DateOnly.FromDateTime(DateTime.Now)
@@ -99,10 +103,10 @@ namespace TMP.Service.Helpers
                         }
                         else
                         {
-                            existingUser.FirstName = firstName;
-                            existingUser.LastName = lastName;
+                            //existingUser.FirstName = firstName;
+                            //existingUser.LastName = lastName;
                             // existingUser.PhoneNumber = phoneNumber;
-
+                            existingUser.UpdatedAt = DateTime.UtcNow;
                             userService.Repository<User>().Update(existingUser);
                         }
 
