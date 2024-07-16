@@ -17,6 +17,5 @@ namespace TMP.Application.Interfaces
         DbSet<Notification> Notifications { get; set; }
 
         void Save();
-        Task<int> SaveChangesAsync();
     }
 }
