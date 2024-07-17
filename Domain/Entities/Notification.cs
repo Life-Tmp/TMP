@@ -9,7 +9,6 @@ namespace TMPDomain.Entities
         public string Message { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool IsRead { get; set; }
-
         public User User { get; set; }
     }
 }
