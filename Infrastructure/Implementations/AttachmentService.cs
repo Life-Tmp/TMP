@@ -26,7 +26,6 @@ namespace TMPInfrastructure.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
-
         public AttachmentService(IAmazonS3 s3Client, IUnitOfWork unitOfWork, IConfiguration configuration, IMapper mapper)
         {
             _s3Client = s3Client;
@@ -62,7 +61,6 @@ namespace TMPInfrastructure.Implementations
 
             return _mapper.Map<AddAttachmentDto>(attachment);
         }
-
         public async Task<bool> RemoveAttachmentAsync(int attachmentId)
         {
             var bucketName = _configuration["AWS:BucketName"];

@@ -1,5 +1,5 @@
 
-using AutoMapper;
+
 using Amazon.S3;
 
 using Microsoft.OpenApi.Models;
@@ -15,6 +15,10 @@ using Amazon.S3.Transfer;
 using Amazon;
 using Amazon.Runtime;
 using TMPApplication.UserTasks;
+using TMPApplication.Notifications;
+using TMPInfrastructure.Implementations.Notifications;
+using TMPInfrastructure.Messaging;
+using Serilog;
 namespace TMP.Service;
 
 class Program
@@ -64,13 +68,21 @@ class Program
        
 
         builder.Services.AddAdvancedDependencyInjection();
+        var logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(builder.Configuration)
+        .Enrich.FromLogContext()
+        .CreateLogger();
 
+        builder.Logging.ClearProviders();
+        builder.Logging.AddSerilog(logger);
         builder.Services.Scan(p => p.FromAssemblies(assemblies)
             .AddClasses()
             .AsMatchingInterface());
         builder.Services.AddHttpContextAccessor();
+        //builder.Services.AddSignalRCore(); // more lightweight
         builder.Services.AddDbContext<DatabaseService>();
         builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
+        //builder.Services.AddScoped<RabbitMQService>(); //TODO: might delete this
         //var mapperConfiguration = new MapperConfiguration(
         //                mc => mc.AddProfile(new AttachmentMappingProfile())); //TODO: Try to find better way to add profiles
 
@@ -91,7 +103,23 @@ class Program
 
         builder.Services.AddScoped<IAttachmentService, AttachmentService>();
         builder.Services.AddScoped<IUserService, UserService>();
-        
+        builder.Services.AddTransient<INotificationService, NotificationService>();
+       
+
+        #region Hosted
+        builder.Services.AddSingleton<RabbitMQService>();
+        builder.Services.AddTransient<NotificationHandler>();
+        builder.Services.AddTransient<RabbitMQConsumer>(sp =>
+        {
+            var rabbitMQService = sp.GetRequiredService<RabbitMQService>();
+            var notificationHandler = sp.GetRequiredService<NotificationHandler>();
+            var logger = sp.GetRequiredService<ILogger<RabbitMQConsumer>>();
+            var channel = rabbitMQService.GetChannel();
+            return new RabbitMQConsumer(channel, notificationHandler,logger);
+        });
+        #endregion
+        builder.Services.AddHostedService<ConsumerHostedService>();
+
         var app = builder.Build();
 
 
@@ -112,9 +140,10 @@ class Program
         }
 
         app.UseHttpsRedirection();
-
+        
         app.UseAuthentication();
         app.UseAuthorization();
+        
 
         app.MapControllers();
 
