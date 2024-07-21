@@ -15,6 +15,7 @@ namespace TMPApplication.MapperProfiles
         {
             CreateMap<UserRegisterDto, User>().ReverseMap();
             CreateMap<UserProfileDto, User>().ReverseMap();
+            CreateMap<UserProfileUpdateDto, User>().ReverseMap();
         }
 
     }

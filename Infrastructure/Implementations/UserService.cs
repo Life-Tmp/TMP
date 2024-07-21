@@ -13,48 +13,358 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using TMPApplication.DTOs.UserDtos;
 using AutoMapper;
+using Microsoft.AspNetCore.Identity.Data;
+using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.Configuration;
+using TMPDomain.HelperModels;
+using Microsoft.Extensions.Logging;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Mvc;
 
 namespace TMPInfrastructure.Implementations
 {
     public class UserService : IUserService
     {
-        public readonly IUnitOfWork _unitOfWork;
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IMapper _mapper;
-        private readonly IHttpContextAccessor _httpContextAccess; 
+        private readonly IHttpContextAccessor _httpContextAccess;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<UserService> _logger;
 
-        public UserService(IUnitOfWork unitOfWork,IHttpContextAccessor httpContextAccess, IMapper mapper)
+        public UserService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccess,
+            IMapper mapper, IConfiguration configuration,
+            ILogger<UserService> logger, IHttpClientFactory httpClientFactory)
         {
+
             _unitOfWork = unitOfWork;
+            _logger = logger;
             _httpContextAccess = httpContextAccess;
             _mapper = mapper;
+            _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
         }
 
-     
 
-        public async Task<UserProfileDto> GetUserProfileInfo()
-        {
-            var userId = _httpContextAccess.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier).Value;
-            var user = await _unitOfWork.Repository<User>().GetById(x => x.Id == userId).FirstOrDefaultAsync(); //DONE: Use Dtos
-            var userMapped  = _mapper.Map<UserProfileDto>(user);
-            return userMapped;
-        }
 
-        public async Task<UserProfileDto> UpdateUserProfile(UserProfileDto userDto)
+
+        public async Task<LoginResponse> LoginWithCredentials(LoginRequest loginRequest)
         {
-            var userId = _httpContextAccess.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier).Value;
-            if(userId == null)
+            try
             {
+                var client = _httpClientFactory.CreateClient(); // TODO: Why u used client factory instead of new HttpClient();
+                var requestBody = new Dictionary<string, string>
+                {
+                    { "grant_type", "password" },
+                    { "username", loginRequest.Email },
+                    { "password", loginRequest.Password },
+                    { "audience", _configuration["AuthoritySettings:Scope"] },
+                    { "client_id", _configuration["AuthoritySettings:ClientId"] },
+                    { "client_secret", _configuration["AuthoritySettings:ClientSecret"] },
+                    { "scope", "openid profile email" }
+                };
+
+                var requestContent = new FormUrlEncodedContent(requestBody);
+                var response = await client.PostAsync($"{_configuration["AuthoritySettings:TokenEndpoint"]}", requestContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var responseJson = JObject.Parse(responseContent);
+                    var accessToken = responseJson["access_token"]?.ToString();
+
+                    _logger.LogInformation($"User {loginRequest.Email} logged in successfully");
+
+                    return new LoginResponse{ AccessToken = accessToken };
+                }
+                else
+                {
+                    var errorResponse = await response.Content.ReadAsStringAsync();
+                    var errorJsonObject = JObject.Parse(errorResponse);
+                    _logger.LogError(errorResponse, "Invalid login attempt");
+                    return new LoginResponse{ Message = (string)errorJsonObject["error_description"], Error = errorResponse };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred during login");
+                return new LoginResponse{ Message = "An error occurred during login", Error = ex.Message };
+            }
+        }
+
+        public async Task<Dictionary<string, object>> RegisterWithCredentials(RegisterRequest registerRequest)
+        {
+
+            var client = _httpClientFactory.CreateClient(); //TODO:  check this
+
+            var requestBody = new
+            {
+                email = registerRequest.Email,
+                password = registerRequest.Password,
+                connection = "Username-Password-Authentication" // Ensure this matches connection name in Auth0
+            };
+
+            var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+            var request = new HttpRequestMessage(HttpMethod.Post, "https://dev-pt8z60gtcfp46ip0.us.auth0.com/api/v2/users")
+            {
+                Content = requestContent
+            };
+
+            request.Headers.Add("Authorization", $"Bearer {await GetManagementApiTokenAsync()}");
+
+            var response = await client.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseJson = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseContent);
+                _logger.LogInformation($"User {registerRequest.Email} registered successfully"); //TODO: dont use email as 
+                return responseJson;
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError($"Failed to register user {errorContent}");
+                throw new Exception($"Failed to register user {errorContent}");  //TODO: Make this better 
+            }
+        }
+
+
+        private async Task<string> GetManagementApiTokenAsync()
+        {
+            var client = _httpClientFactory.CreateClient();  //TODO: You are creating a Client for each method, check this to enhance it
+            var requestBody = new Dictionary<string, string> // Why u used dictionary - because we have key and value types
+            {
+                { "grant_type", "client_credentials" },
+                { "client_id", _configuration["AuthoritySettings:ClientId"] },
+                { "client_secret", _configuration["AuthoritySettings:ClientSecret"] },
+                { "audience", _configuration["AuthoritySettings:ManagementEndpoint"] }
+            };
+
+            var requestContent = new FormUrlEncodedContent(requestBody);
+            var response = await client.PostAsync("https://dev-pt8z60gtcfp46ip0.us.auth0.com/oauth/token", requestContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseJson = JsonConvert.DeserializeObject<Dictionary<string, string>>(responseContent);
+                return responseJson["access_token"];
+            }
+            else
+            {
+                _logger.LogWarning("Unable to obtain Auth0 Management API token");
+                throw new ApplicationException("Unable to obtain Auth0 Management API token."); //CHECK: What is Application Exception
+            }
+        }
+
+        public async Task<UserProfileResponse> GetUserProfileAsync(string accessToken)
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{_configuration["AuthoritySettings:UserInfoEndpoint"]}");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                var profileResponse = await client.SendAsync(request);
+
+                if (profileResponse.IsSuccessStatusCode)
+                {
+                    
+                    var profileJson = await profileResponse.Content.ReadAsStringAsync();
+                    var profileData = JObject.Parse(profileJson);
+
+                    
+                    var userProfile = new UserProfileResponse
+                    {
+
+                        FirstName = profileData[ClaimTypes.Name]?.ToString(),
+                        LastName = profileData[ClaimTypes.Surname]?.ToString(),
+                        Email = profileData[ClaimTypes.Email]?.ToString(),
+                        Birthdate = profileData[ClaimTypes.DateOfBirth]?.ToString(),
+                        PhoneNumber = profileData[ClaimTypes.MobilePhone]?.ToString(),
+                        ProfilePicture = profileData["picture"]?.ToString()
+                    };
+
+                    var id = profileData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]?.ToString();
+
+                    var userToUpdate =await _unitOfWork.Repository<User>().GetById(x => x.Id == id).FirstOrDefaultAsync();
+                    
+
+
+                    userToUpdate.FirstName = userProfile.FirstName ?? "";
+                    userToUpdate.LastName = userProfile.LastName ?? "";
+                    userToUpdate.Email = userProfile.Email ?? "";
+                    userToUpdate.ProfilePicture = userProfile.ProfilePicture;
+                    userToUpdate.PhoneNumber = userProfile.PhoneNumber;
+                    userToUpdate.Birthdate = DateTime.TryParse(userProfile.Birthdate, out DateTime parsedBirthdate) ? parsedBirthdate : null; //TODO: Check this
+                    userToUpdate.IsEmailVerified = (bool)(profileData["email_verified"] ?? false);
+                   
+                    _unitOfWork.Repository<User>().Update(userToUpdate);
+                    _unitOfWork.Complete();
+                    return userProfile;
+                }
+                else
+                {
+                    _logger.LogError("Failed to retrieve user profile. Status Code: {StatusCode}", profileResponse.StatusCode);
+                    return null;
+                }
+                       
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while retrieving user profile");
                 return null;
             }
-            var userToUpdate = await _unitOfWork.Repository<User>().GetById(x => x.Id == userId).FirstOrDefaultAsync();
-            userToUpdate.FirstName = userDto.FirstName;
-            userToUpdate.LastName = userDto.LastName;
-
-            _unitOfWork.Repository<User>().Update(userToUpdate);
-            _unitOfWork.Complete();
-            return userDto;
         }
 
-       
+        public async Task<IActionResult> UpdateUserProfileAsync(string userId, UserProfileUpdateDto updateRequest)
+        {
+            if (string.IsNullOrWhiteSpace(userId) || updateRequest == null)
+            {
+                return new BadRequestObjectResult("Invalid input.");
+            }
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                object requestBody = null;
+                var provider = userId.Split("|")[0];
+                if(provider  == "google-oauth2")
+                {
+                    requestBody = new
+                    {
+                        user_metadata = new
+                        {
+                            phone_number = updateRequest.PhoneNumber,
+                            birthday = updateRequest.Birthday.ToString("yyyy-MM-dd") // Formated date
+                        }
+                    };
+                }
+                else
+                {
+                     requestBody = new
+                    {
+                        given_name = updateRequest.FirstName,
+                        family_name = updateRequest.LastName,
+
+                        picture = updateRequest.Picture,
+                        user_metadata = new
+                        {
+                            phone_number = updateRequest.PhoneNumber,
+                            birthday = updateRequest.Birthday.ToString("yyyy-MM-dd") // Formated date
+                        }
+                    };
+
+                }
+                
+
+                var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+                var auth0ApiToken = await GetManagementApiTokenAsync(); // Token of ManagementAPI
+
+                var auth0ApiUrl = new Uri($"{_configuration["AuthoritySettings:ManagementEndpoint"]}users/{userId}");
+                    
+
+                var request = new HttpRequestMessage(HttpMethod.Patch, auth0ApiUrl)
+                {
+                    Content = requestContent
+                };
+
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth0ApiToken);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json")); // MEdia Type to represent a media type 
+                                                                                                     // can be also text/html - also has quality factor
+
+                var response = await client.SendAsync(request);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var userToUpdate = _unitOfWork.Repository<User>().GetById(x => x.Id == userId).FirstOrDefaultAsync().Result;
+                    _mapper.Map(updateRequest, userToUpdate);
+                    
+                    _unitOfWork.Repository<User>().Update(userToUpdate); //To get the object User, not Task<User>
+                    _unitOfWork.Complete();
+
+
+                    var responseContent = await response.Content.ReadAsStringAsync();
+
+                    _logger.LogInformation("User profile updated successfully");
+                    return new OkObjectResult(userToUpdate);
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Failed to update user profile : {errorContent}");
+                    return new StatusCodeResult((int)response.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while updating user profile");
+                return new StatusCodeResult(500);
+            }
+        }
+
+        public async Task<ApiResponse> DeleteUserAsync(string userId)
+        {
+            var response = new ApiResponse { };
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                response.Success = false;
+                response.Message = "Invalid user ID.";
+                response.StatusCode = 400;
+                return response;
+            }
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                var auth0ApiToken = await GetManagementApiTokenAsync();
+                var auth0ApiUrl = new Uri($"{_configuration["AuthoritySettings:ManagementEndpoint"]}users/{userId}");
+
+                var request = new HttpRequestMessage(HttpMethod.Delete, auth0ApiUrl);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth0ApiToken);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var httpResponse = await client.SendAsync(request);
+
+                if (httpResponse.IsSuccessStatusCode)
+                {
+                    response.Success = true;
+                    response.Message = "User deleted successfully";
+                    response.StatusCode = 200;
+
+                    var userToDelete = await _unitOfWork.Repository<User>().GetById(x => x.Id == userId).FirstOrDefaultAsync();
+                    _unitOfWork.Repository<User>().Delete(userToDelete);
+                    _unitOfWork.Complete();
+
+                    _logger.LogInformation("User with ID {UserId} deleted successfully", userId);
+                    return response;
+                }
+                else
+                {
+                    var errorContent = await httpResponse.Content.ReadAsStringAsync();
+                    response.Success = false;
+                    response.Message = "Failed to delete user";
+                    response.StatusCode = (int)httpResponse.StatusCode;
+
+                    _logger.LogError("Failed to delete user with ID {UserId}: {ErrorContent}", userId, errorContent);
+                    return response;
+                }
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"An error occurred while deleting user: {ex.Message}";
+                response.StatusCode = 500;
+
+                _logger.LogError(ex, "An error occurred while deleting user with ID {UserId}", userId);
+                return response;
+            }
+
+            
+        }
+
     }
+
 }

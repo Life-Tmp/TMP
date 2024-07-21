@@ -47,7 +47,6 @@ namespace TMP.Service.Helpers
                         var firstName = context.HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
                         var lastName = context.HttpContext.User.FindFirst(ClaimTypes.Surname)?.Value;
                         var email = context.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
-                        //var gender = context.HttpContext.User.FindFirst(ClaimTypes.Gender)?.Value;
                         var birthdate = context.HttpContext.User.FindFirst(ClaimTypes.DateOfBirth)?.Value;
                         var phoneNumber = context.HttpContext.User.FindFirst(ClaimTypes.MobilePhone)?.Value;
 

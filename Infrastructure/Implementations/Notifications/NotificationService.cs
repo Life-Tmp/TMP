@@ -45,7 +45,7 @@ namespace TMPInfrastructure.Implementations.Notifications
 
             _unitOfWork.Complete();
            
-            _rabbitMQConfig.PublishMessage(notification, "notification");
+            _rabbitMQConfig.PublishMessage(notification, "notifications");
 
         }
 

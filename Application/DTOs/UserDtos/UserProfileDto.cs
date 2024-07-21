@@ -10,6 +10,8 @@ namespace TMPApplication.DTOs.UserDtos
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
+
+       
         
     }
 }

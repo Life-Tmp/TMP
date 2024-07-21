@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using TMP.Application.DTOs.TaskDtos;
 using TMP.Application.Interfaces;
 using TMP.Application.Tasks;
+using TMPApplication.Notifications;
 using TMPDomain.Entities;
 using Task = TMPDomain.Entities.Task;
 
@@ -15,11 +16,12 @@ namespace TMP.Infrastructure.Implementations
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-
-        public TaskService(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly INotificationService _notificationService;
+        public TaskService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _notificationService = notificationService;
         }
 
         public async Task<IEnumerable<TaskDto>> GetAllTasksAsync()

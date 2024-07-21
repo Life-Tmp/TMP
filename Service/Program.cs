@@ -55,8 +55,9 @@ class Program
                     {
                         AuthorizationUrl = new Uri("https://dev-pt8z60gtcfp46ip0.us.auth0.com/authorize"),
                         TokenUrl = new Uri("https://dev-pt8z60gtcfp46ip0.us.auth0.com/oauth/token"),
-                        Scopes = new Dictionary<string, string> { { "TMP", "Access to admin functionalities in TMP" },
-                                                                  { "admin", "Access to administrative functions" } }
+                        Scopes = new Dictionary<string, string> { { "TMP", "TMP" },
+                                                                  { "admin", "admin" },
+                            { "openid","openid"},{"profile","profile" },{"email","email" } }
                     }
                 }
             });
@@ -97,6 +98,8 @@ class Program
                     builder.Configuration["AWS:SecretAccessKey"]
                 )
         };
+
+        builder.Services.AddHttpClient(); //TODO: Chechk again
 
         builder.Services.AddDefaultAWSOptions(awsOptions);
         builder.Services.AddAWSService<IAmazonS3>();
