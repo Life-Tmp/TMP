@@ -38,7 +38,9 @@ namespace TMPInfrastructure.Messaging
             {
                 _connection = _connectionFactory.CreateConnection();
                 _channel = _connection.CreateModel(); //Check what exactly is a Model
-                _channel.QueueDeclare(queue: "notification", durable: false, exclusive: false, autoDelete: false, arguments: null);
+                _channel.QueueDeclare(queue: "general-notification", durable: false, exclusive: false, autoDelete: false, arguments: null);
+                _channel.QueueDeclare(queue: "task-notification", durable: false, exclusive: false, autoDelete: false, arguments: null);
+                _channel.QueueDeclare(queue: "reminder", durable: false, exclusive: false, autoDelete: false, arguments: null);
                 _logger.LogInformation($"Successfully connected to Channel:  {_channel.ChannelNumber}");
                 
             }

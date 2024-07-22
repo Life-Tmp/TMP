@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using TMPInfrastructure.Messaging;
 using Amazon.Runtime.Internal.Util;
 using Microsoft.Extensions.Logging;
+using TMPCommon.Constants;
 
 namespace TMPInfrastructure.Implementations.Notifications
 {
@@ -31,21 +32,24 @@ namespace TMPInfrastructure.Implementations.Notifications
             _rabbitMQConfig = rabbitMQConfig;
         }
 
-        public void CreateNotification(string userId, string message)
+        public async Task CreateNotification(string userId,int? taskId, string message,string subject,string type)
         {
             var notification = new Notification
             {
                 UserId = userId,
+                TaskId = taskId,
+                Subject = subject,
                 Message = message,
                 CreatedAt = DateTime.UtcNow,
                 IsRead = false,
+                NotificationType = type
             };
             //notification.User = null; //TODO: Find a way to serialize even the relationship
             _unitOfWork.Repository<Notification>().Create(notification);
-
+            Console.WriteLine("Created Notification");
             _unitOfWork.Complete();
-           
-            _rabbitMQConfig.PublishMessage(notification, "notifications");
+            _logger.LogInformation($"Notification with ID: {notification.Id} created successfully");
+            _rabbitMQConfig.PublishMessage(notification, type);
 
         }
 
@@ -62,14 +66,14 @@ namespace TMPInfrastructure.Implementations.Notifications
             return allNotifications;
         }
 
-        public void MarksAsRead(int notificationId)
+        public async Task MarksAsRead(int notificationId)
         {
-            var notification = _unitOfWork.Repository<Notification>().GetById(x => x.Id == notificationId).FirstOrDefault();
+            var notification = await _unitOfWork.Repository<Notification>().GetById(x => x.Id == notificationId).FirstOrDefaultAsync();
             if (notification != null)
             {
                 notification.IsRead = true;
                 _unitOfWork.Repository<Notification>().Update(notification);
-                _unitOfWork.Complete();
+               _unitOfWork.Complete();
             }
                 
 
