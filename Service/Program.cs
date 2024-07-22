@@ -24,6 +24,8 @@ using TMP.Infrastructure.Implementations;
 using TMP.Application.Hubs;
 using System.IO;
 using System;
+using TMP.Application.Interfaces.Tags;
+using TMP.Infrastructure.Implementations.Tags;
 namespace TMP.Service;
 
 class Program
@@ -114,6 +116,7 @@ class Program
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddTransient<INotificationService, NotificationService>();
         builder.Services.AddScoped<ICommentService, CommentService>();
+        builder.Services.AddScoped<ITagService, TagService>();
 
 
         #region Hosted
