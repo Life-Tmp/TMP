@@ -19,6 +19,11 @@ using TMPApplication.Notifications;
 using TMPInfrastructure.Implementations.Notifications;
 using TMPInfrastructure.Messaging;
 using Serilog;
+using TMP.Application.Comments;
+using TMP.Infrastructure.Implementations;
+using TMP.Application.Hubs;
+using System.IO;
+using System;
 namespace TMP.Service;
 
 class Program
@@ -35,9 +40,9 @@ class Program
         var builder = WebApplication.CreateBuilder(args);
         builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true); //CHECK:
         builder.Configuration.AddEnvironmentVariables();
-        
+
         builder.Services.RegisterAuthentication(builder.Configuration);
-        
+
 
         builder.Services.AddControllers();
 
@@ -66,7 +71,7 @@ class Program
             c.MapType<IFormFile>(() => new OpenApiSchema { Type = "file" });
         }
 );
-       
+
 
         builder.Services.AddAdvancedDependencyInjection();
         var logger = new LoggerConfiguration()
@@ -80,9 +85,10 @@ class Program
             .AddClasses()
             .AsMatchingInterface());
         builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSignalR();
         //builder.Services.AddSignalRCore(); // more lightweight
         builder.Services.AddDbContext<DatabaseService>();
-        builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
+        builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
         //builder.Services.AddScoped<RabbitMQService>(); //TODO: might delete this
         //var mapperConfiguration = new MapperConfiguration(
         //                mc => mc.AddProfile(new AttachmentMappingProfile())); //TODO: Try to find better way to add profiles
@@ -107,7 +113,8 @@ class Program
         builder.Services.AddScoped<IAttachmentService, AttachmentService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddTransient<INotificationService, NotificationService>();
-       
+        builder.Services.AddScoped<ICommentService, CommentService>();
+
 
         #region Hosted
         builder.Services.AddSingleton<RabbitMQService>();
@@ -118,7 +125,7 @@ class Program
             var notificationHandler = sp.GetRequiredService<NotificationHandler>();
             var logger = sp.GetRequiredService<ILogger<RabbitMQConsumer>>();
             var channel = rabbitMQService.GetChannel();
-            return new RabbitMQConsumer(channel, notificationHandler,logger);
+            return new RabbitMQConsumer(channel, notificationHandler, logger);
         });
         #endregion
         builder.Services.AddHostedService<ConsumerHostedService>();
@@ -143,10 +150,17 @@ class Program
         }
 
         app.UseHttpsRedirection();
-        
+        app.UseRouting();
+
         app.UseAuthentication();
         app.UseAuthorization();
-        
+
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllers();
+            endpoints.MapHub<CommentHub>("/commentHub"); // Map the SignalR hub
+        });
+
 
         app.MapControllers();
 
