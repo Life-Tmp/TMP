@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,16 +11,28 @@ namespace TMPInfrastructure.Messaging
 {
     public class ConsumerHostedService : IHostedService
     {
-        private readonly RabbitMQConsumer _consumer;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<ConsumerHostedService> _logger;
 
-        public ConsumerHostedService(RabbitMQConsumer consumer)
+        public ConsumerHostedService(IServiceProvider serviceProvider, ILogger<ConsumerHostedService> logger)
         {
-            _consumer = consumer;
+            _serviceProvider = serviceProvider;
+            _logger = logger;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _consumer.StartConsume("notification");
+            Task.Run(() =>
+            {
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var _consumer = scope.ServiceProvider.GetRequiredService<RabbitMQConsumer>();
+                    _consumer.StartConsume("general-notification");
+                    _consumer.StartConsume("task-notification");
+                    _consumer.StartConsume("reminder");
+                }
+            });
+            
             //TODO: Start consuming other queues as needed
             return Task.CompletedTask;
         }

@@ -184,6 +184,7 @@ namespace TMPInfrastructure.Implementations
                         Birthdate = profileData[ClaimTypes.DateOfBirth]?.ToString(),
                         PhoneNumber = profileData[ClaimTypes.MobilePhone]?.ToString(),
                         ProfilePicture = profileData["picture"]?.ToString()
+
                     };
 
                     var id = profileData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]?.ToString();
@@ -202,6 +203,9 @@ namespace TMPInfrastructure.Implementations
                    
                     _unitOfWork.Repository<User>().Update(userToUpdate);
                     _unitOfWork.Complete();
+
+                    
+                    
                     return userProfile;
                 }
                 else

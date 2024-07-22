@@ -9,9 +9,9 @@ namespace TMPApplication.Notifications
 {
     public interface INotificationService
     {
-        void CreateNotification(string userId, string message);
+        Task CreateNotification(string userId,int? taskId, string message,string subject,string type);
         Task<List<Notification>> GetAllNotifications();
 
-        void MarksAsRead(int notificationId);
+        Task MarksAsRead(int notificationId);
     }
 }
