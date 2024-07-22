@@ -12,10 +12,13 @@ namespace Persistence.EntityConfigurations
 
             builder.Property(t => t.Name)
                 .IsRequired()
-                .HasMaxLength(100);
+                .HasMaxLength(255);
 
-            builder.HasMany(tag => tag.Tasks)
-                .WithMany(task => task.Tags)
+            builder.Property(t => t.Color)
+                .HasMaxLength(7); // For storing color codes like #FFFFFF
+
+            builder.HasMany(t => t.Tasks)
+                .WithMany(t => t.Tags)
                 .UsingEntity(j => j.ToTable("TaskTags"));
         }
     }
