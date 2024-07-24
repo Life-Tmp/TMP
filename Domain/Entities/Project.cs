@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Task = TMPDomain.Entities.Task;
-
-namespace TMPDomain.Entities
+﻿namespace TMPDomain.Entities
 {
     public class Project
     {
@@ -17,8 +11,6 @@ namespace TMPDomain.Entities
 
         public User CreatedByUser { get; set; }
         public ICollection<Task> Tasks { get; set; }
-        public ICollection<User> Users { get; set; } = new List<User>();
+        public ICollection<ProjectUser> ProjectUsers { get; set; } = new List<ProjectUser>();
     }
 }
-
-
