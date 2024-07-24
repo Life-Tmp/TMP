@@ -1,5 +1,4 @@
-﻿using System;
-using TMPDomain.ValueObjects;
+﻿using TMPDomain.Enumerations;
 
 namespace TMP.Application.DTOs.TaskDtos
 {

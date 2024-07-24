@@ -26,6 +26,7 @@ namespace TMP.Persistence
         public DbSet<Project> Projects { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<ProjectUser> ProjectUsers { get; set; }
 
         public void Save()
         {
@@ -53,6 +54,7 @@ namespace TMP.Persistence
             new ProjectConfiguration().Configure(builder.Entity<Project>());
             new CommentConfiguration().Configure(builder.Entity<Comment>());
             new NotificationConfiguration().Configure(builder.Entity<Notification>());
+            new ProjectUserConfiguration().Configure(builder.Entity<ProjectUser>());
         }
     }
 }
