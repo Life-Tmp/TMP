@@ -1,7 +1,6 @@
 
 
 using Amazon.S3;
-
 using Microsoft.OpenApi.Models;
 using System.Runtime.Loader;
 using TMP.Application.Interfaces;
@@ -26,6 +25,10 @@ using System.IO;
 using System;
 using TMP.Application.Interfaces.Tags;
 using TMP.Infrastructure.Implementations.Tags;
+using TMPApplication.Interfaces;
+using TMPApplication.Interfaces.Reminders;
+using TMPInfrastructure.Implementations.Reminders;
+using Hangfire;
 namespace TMP.Service;
 
 class Program
@@ -88,14 +91,8 @@ class Program
             .AsMatchingInterface());
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddSignalR();
-        //builder.Services.AddSignalRCore(); // more lightweight
         builder.Services.AddDbContext<DatabaseService>();
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-        //builder.Services.AddScoped<RabbitMQService>(); //TODO: might delete this
-        //var mapperConfiguration = new MapperConfiguration(
-        //                mc => mc.AddProfile(new AttachmentMappingProfile())); //TODO: Try to find better way to add profiles
-
-        //IMapper mapper = mapperConfiguration.CreateMapper();
 
         builder.Services.AddAutoMapper(assemblies); //CHECK: I think this is better, just need to TEST
         var awsOptions = new AWSOptions
@@ -115,23 +112,34 @@ class Program
         builder.Services.AddScoped<IAttachmentService, AttachmentService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddTransient<INotificationService, NotificationService>();
+        builder.Services.AddTransient<IEmailService, EmailService>();
+       
         builder.Services.AddScoped<ICommentService, CommentService>();
         builder.Services.AddScoped<ITagService, TagService>();
 
+       
 
         #region Hosted
         builder.Services.AddSingleton<RabbitMQService>();
-        builder.Services.AddTransient<NotificationHandler>();
-        builder.Services.AddTransient<RabbitMQConsumer>(sp =>
+        builder.Services.AddScoped<MessageHandler>();
+        builder.Services.AddScoped<RabbitMQConsumer>(sp =>
         {
             var rabbitMQService = sp.GetRequiredService<RabbitMQService>();
-            var notificationHandler = sp.GetRequiredService<NotificationHandler>();
+            var serviceScopeFactory = sp.GetRequiredService<IServiceScopeFactory>();
             var logger = sp.GetRequiredService<ILogger<RabbitMQConsumer>>();
             var channel = rabbitMQService.GetChannel();
-            return new RabbitMQConsumer(channel, notificationHandler, logger);
+            return new RabbitMQConsumer(channel, logger, serviceScopeFactory);
         });
         #endregion
         builder.Services.AddHostedService<ConsumerHostedService>();
+
+        builder.Services.AddHangfire(configuration => configuration
+            .UseSqlServerStorage(builder.Configuration["ConnectionStrings:DefaultConnection"])); // Use your storage configuration
+
+        builder.Services.AddHangfireServer();
+
+        // Add other services
+        builder.Services.AddScoped<IReminderService, ReminderService>();
 
         var app = builder.Build();
 
@@ -154,7 +162,7 @@ class Program
 
         app.UseHttpsRedirection();
         app.UseRouting();
-
+        app.UseHangfireDashboard();
         app.UseAuthentication();
         app.UseAuthorization();
 
@@ -162,6 +170,7 @@ class Program
         {
             endpoints.MapControllers();
             endpoints.MapHub<CommentHub>("/commentHub"); // Map the SignalR hub
+            endpoints.MapHangfireDashboard();
         });
 
 

@@ -12,8 +12,8 @@ using TMP.Persistence;
 namespace TMPPersistence.Migrations
 {
     [DbContext(typeof(DatabaseService))]
-    [Migration("20240706005822_InitialMigrations")]
-    partial class InitialMigrations
+    [Migration("20240722132335_UpdateNotification")]
+    partial class UpdateNotification
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,6 +25,21 @@ namespace TMPPersistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("ProjectUser", b =>
+                {
+                    b.Property<int>("ProjectsId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UsersId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ProjectsId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("ProjectUsers", (string)null);
+                });
+
             modelBuilder.Entity("TMPDomain.Entities.Attachment", b =>
                 {
                     b.Property<int>("Id")
@@ -34,10 +49,14 @@ namespace TMPPersistence.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("FileName")
-                        .HasColumnType("nvarchar(450)");
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("FilePath")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<long>("FileSize")
                         .HasColumnType("bigint");
@@ -53,8 +72,6 @@ namespace TMPPersistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FileName");
-
                     b.HasIndex("TaskId");
 
                     b.ToTable("Attachments");
@@ -69,7 +86,9 @@ namespace TMPPersistence.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -104,6 +123,11 @@ namespace TMPPersistence.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Subject")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserId")
@@ -127,13 +151,24 @@ namespace TMPPersistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
 
                     b.ToTable("Projects");
                 });
@@ -147,14 +182,11 @@ namespace TMPPersistence.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int?>("TaskId")
-                        .HasColumnType("int");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("TaskId");
 
                     b.ToTable("Tags");
                 });
@@ -170,6 +202,10 @@ namespace TMPPersistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
 
@@ -183,21 +219,16 @@ namespace TMPPersistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
-                        .HasColumnType("nvarchar(450)");
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("DueDate");
-
-                    b.HasIndex("Priority");
-
                     b.HasIndex("ProjectId");
-
-                    b.HasIndex("Status");
-
-                    b.HasIndex("Title");
 
                     b.ToTable("Tasks");
                 });
@@ -210,9 +241,6 @@ namespace TMPPersistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<TimeSpan>("Duration")
-                        .HasColumnType("time");
-
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
 
@@ -223,12 +251,13 @@ namespace TMPPersistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TaskId")
-                        .IsUnique();
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("TaskDurations");
                 });
@@ -238,45 +267,102 @@ namespace TMPPersistence.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<DateTime?>("Birthdate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Email")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("FirstName")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("bit");
 
                     b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("PasswordHashed")
+                    b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("ProjectId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TaskId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Username")
+                    b.Property<string>("ProfilePicture")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
-
-                    b.HasIndex("TaskId");
 
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("TagTask", b =>
+                {
+                    b.Property<int>("TagsId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TasksId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TagsId", "TasksId");
+
+                    b.HasIndex("TasksId");
+
+                    b.ToTable("TaskTags", (string)null);
+                });
+
+            modelBuilder.Entity("TaskUser", b =>
+                {
+                    b.Property<int>("AssignedTasksId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AssignedUsersId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("AssignedTasksId", "AssignedUsersId");
+
+                    b.HasIndex("AssignedUsersId");
+
+                    b.ToTable("TaskUser");
+                });
+
+            modelBuilder.Entity("ProjectUser", b =>
+                {
+                    b.HasOne("TMPDomain.Entities.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TMPDomain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TMPDomain.Entities.Attachment", b =>
                 {
-                    b.HasOne("TMPDomain.Entities.Task", "Tasks")
+                    b.HasOne("TMPDomain.Entities.Task", "Task")
                         .WithMany("Attachments")
                         .HasForeignKey("TaskId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Tasks");
+                    b.Navigation("Task");
                 });
 
             modelBuilder.Entity("TMPDomain.Entities.Comment", b =>
@@ -288,7 +374,7 @@ namespace TMPPersistence.Migrations
                         .IsRequired();
 
                     b.HasOne("TMPDomain.Entities.User", "User")
-                        .WithMany()
+                        .WithMany("Comments")
                         .HasForeignKey("UserId");
 
                     b.Navigation("Task");
@@ -299,17 +385,19 @@ namespace TMPPersistence.Migrations
             modelBuilder.Entity("TMPDomain.Entities.Notification", b =>
                 {
                     b.HasOne("TMPDomain.Entities.User", "User")
-                        .WithMany()
+                        .WithMany("Notifications")
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("TMPDomain.Entities.Tag", b =>
+            modelBuilder.Entity("TMPDomain.Entities.Project", b =>
                 {
-                    b.HasOne("TMPDomain.Entities.Task", null)
-                        .WithMany("Tags")
-                        .HasForeignKey("TaskId");
+                    b.HasOne("TMPDomain.Entities.User", "CreatedByUser")
+                        .WithMany("ProjectsCreated")
+                        .HasForeignKey("CreatedByUserId");
+
+                    b.Navigation("CreatedByUser");
                 });
 
             modelBuilder.Entity("TMPDomain.Entities.Task", b =>
@@ -325,42 +413,74 @@ namespace TMPPersistence.Migrations
 
             modelBuilder.Entity("TMPDomain.Entities.TaskDuration", b =>
                 {
+                    b.HasOne("TMPDomain.Entities.Task", "Task")
+                        .WithMany("TaskDurations")
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TMPDomain.Entities.User", "User")
+                        .WithMany("TaskDurations")
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("Task");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("TagTask", b =>
+                {
+                    b.HasOne("TMPDomain.Entities.Tag", null)
+                        .WithMany()
+                        .HasForeignKey("TagsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("TMPDomain.Entities.Task", null)
-                        .WithOne("TaskDuration")
-                        .HasForeignKey("TMPDomain.Entities.TaskDuration", "TaskId")
+                        .WithMany()
+                        .HasForeignKey("TasksId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("TMPDomain.Entities.User", b =>
+            modelBuilder.Entity("TaskUser", b =>
                 {
-                    b.HasOne("TMPDomain.Entities.Project", null)
-                        .WithMany("Users")
-                        .HasForeignKey("ProjectId");
-
                     b.HasOne("TMPDomain.Entities.Task", null)
-                        .WithMany("AssignedUser")
-                        .HasForeignKey("TaskId");
+                        .WithMany()
+                        .HasForeignKey("AssignedTasksId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TMPDomain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedUsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TMPDomain.Entities.Project", b =>
                 {
                     b.Navigation("Tasks");
-
-                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("TMPDomain.Entities.Task", b =>
                 {
-                    b.Navigation("AssignedUser");
-
                     b.Navigation("Attachments");
 
                     b.Navigation("Comments");
 
-                    b.Navigation("Tags");
+                    b.Navigation("TaskDurations");
+                });
 
-                    b.Navigation("TaskDuration");
+            modelBuilder.Entity("TMPDomain.Entities.User", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Notifications");
+
+                    b.Navigation("ProjectsCreated");
+
+                    b.Navigation("TaskDurations");
                 });
 #pragma warning restore 612, 618
         }

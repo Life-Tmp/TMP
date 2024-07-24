@@ -2,12 +2,14 @@
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using TMP.Application.DTOs.TaskDtos;
 using TMP.Application.Interfaces;
 using TMP.Application.Tasks;
 using TMPApplication.Notifications;
 using TMPDomain.Entities;
+using TMPDomain.ValueObjects;
 using Task = TMPDomain.Entities.Task;
 
 namespace TMP.Infrastructure.Implementations
@@ -59,12 +61,12 @@ namespace TMP.Infrastructure.Implementations
 
             _unitOfWork.Repository<Task>().Create(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
-
             return _mapper.Map<TaskDto>(task);
         }
 
         public async Task<bool> UpdateTaskAsync(int id, AddTaskDto updatedTask)
         {
+
             var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id).FirstOrDefaultAsync();
             if (task == null) return false;
 
@@ -73,6 +75,8 @@ namespace TMP.Infrastructure.Implementations
 
             _unitOfWork.Repository<Task>().Update(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
+
+
             return true;
         }
 

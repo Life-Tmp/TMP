@@ -17,6 +17,7 @@ namespace TMPDomain.Entities
         public ICollection<Comment> Comments { get; set; }
         public ICollection<Attachment> Attachments { get; set; }
         public ICollection<TaskDuration> TaskDurations { get; set; }
+        public ICollection<Reminder> Reminders { get; set; }
         public List<User> AssignedUsers { get; set; }
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
     }
