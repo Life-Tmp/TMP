@@ -49,6 +49,10 @@ namespace Persistence.EntityConfigurations
             builder.HasMany(t => t.Reminders)
                 .WithOne(u => u.Task)
                 .HasForeignKey(t => t.TaskId);
+
+            builder.HasMany(t => t.Subtasks)
+                .WithOne(s => s.Task)
+                .HasForeignKey(s => s.TaskId);
         }
     }
 }

@@ -27,6 +27,7 @@ namespace TMP.Persistence
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<ProjectUser> ProjectUsers { get; set; }
+        public DbSet<Subtask> Subtasks { get; set; }
 
         public void Save()
         {
@@ -55,6 +56,7 @@ namespace TMP.Persistence
             new CommentConfiguration().Configure(builder.Entity<Comment>());
             new NotificationConfiguration().Configure(builder.Entity<Notification>());
             new ProjectUserConfiguration().Configure(builder.Entity<ProjectUser>());
+            new SubtaskConfiguration().Configure(builder.Entity<Subtask>());
         }
     }
 }

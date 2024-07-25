@@ -29,6 +29,8 @@ using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Reminders;
 using TMPInfrastructure.Implementations.Reminders;
 using Hangfire;
+using TMPApplication.Interfaces.Subtasks;
+using TMPInfrastructure.Implementations.Subtasks;
 namespace TMP.Service;
 
 class Program
@@ -116,8 +118,9 @@ class Program
        
         builder.Services.AddScoped<ICommentService, CommentService>();
         builder.Services.AddScoped<ITagService, TagService>();
+        builder.Services.AddScoped<ISubtaskService, SubtaskService>();
 
-       
+
 
         #region Hosted
         builder.Services.AddSingleton<RabbitMQService>();
