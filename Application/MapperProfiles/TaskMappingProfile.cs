@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using TMP.Application.DTOs.TaskDtos;
+using TMP.Application.DTOs.SubtaskDtos;
 using TMPDomain.Entities;
 using Task = TMPDomain.Entities.Task;
 
@@ -13,6 +14,11 @@ namespace TMP.Application.MapperProfiles
             CreateMap<AddTaskDto, Task>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ReverseMap();
+
+            CreateMap<Subtask, SubtaskDto>().ReverseMap();
+            CreateMap<AddSubtaskDto, Subtask>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ReverseMap();
         }
     }
