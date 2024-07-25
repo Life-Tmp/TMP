@@ -1,24 +1,21 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using AutoMapper;
-using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using TMP.Application.DTOs.TaskDtos;
 using TMP.Application.Interfaces;
-using TMP.Application.Tasks;
+using TMPApplication.Interfaces.Tasks;
 using TMPApplication.Notifications;
 using TMPDomain.Entities;
-using TMPDomain.ValueObjects;
 using Task = TMPDomain.Entities.Task;
 
-namespace TMP.Infrastructure.Implementations
+
+namespace TMPInfrastructure.Implementations.Tasks
 {
     public class TaskService : ITaskService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
+
         public TaskService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
@@ -66,7 +63,6 @@ namespace TMP.Infrastructure.Implementations
 
         public async Task<bool> UpdateTaskAsync(int id, AddTaskDto updatedTask)
         {
-
             var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id).FirstOrDefaultAsync();
             if (task == null) return false;
 
@@ -75,7 +71,6 @@ namespace TMP.Infrastructure.Implementations
 
             _unitOfWork.Repository<Task>().Update(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
-
 
             return true;
         }
@@ -100,6 +95,75 @@ namespace TMP.Infrastructure.Implementations
             }
 
             var tasks = await query.Include(t => t.Project).ToListAsync();
+            return _mapper.Map<IEnumerable<TaskDto>>(tasks);
+        }
+
+        public async Task<bool> AssignUserToTaskAsync(AssignUserToTaskDto assignUserToTaskDto)
+        {
+            var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == assignUserToTaskDto.TaskId)
+                .Include(t => t.AssignedUsers)
+                .FirstOrDefaultAsync();
+
+            if (task == null) return false;
+
+            var user = await _unitOfWork.Repository<User>().GetById(u => u.Id == assignUserToTaskDto.UserId).FirstOrDefaultAsync();
+            if (user == null) return false;
+
+            task.AssignedUsers.Add(user);
+            _unitOfWork.Repository<Task>().Update(task);
+            await _unitOfWork.Repository<Task>().SaveChangesAsync();
+
+            return true;
+        }
+
+        public async Task<bool> RemoveUserFromTaskAsync(RemoveUserFromTaskDto removeUserFromTaskDto)
+        {
+            var task = await _unitOfWork.Repository<Task>()
+                .GetById(t => t.Id == removeUserFromTaskDto.TaskId)
+                .Include(t => t.AssignedUsers)
+                .FirstOrDefaultAsync();
+
+            if (task == null) return false;
+
+            var user = await _unitOfWork.Repository<User>()
+                .GetById(u => u.Id == removeUserFromTaskDto.UserId)
+                .FirstOrDefaultAsync();
+
+            if (user == null) return false;
+
+
+            if (!task.AssignedUsers.Any(u => u.Id == user.Id))
+            {
+                return false;
+            }
+
+            task.AssignedUsers.Remove(user);
+
+            _unitOfWork.Repository<Task>().Update(task);
+            var result = _unitOfWork.Complete();
+
+            return result;
+        }
+        public async Task<bool> UpdateStatusOfTask(UpdateTaskStatusDto updateTaskStatusDto)
+        {
+            var task = await _unitOfWork.Repository<Task>()
+                .GetById(x => x.Id == updateTaskStatusDto.TaskId)
+                .FirstOrDefaultAsync();
+
+            if (task == null) return false;
+
+            task.Status = updateTaskStatusDto.Status;
+            _unitOfWork.Repository<Task>().Update(task);
+            return _unitOfWork.Complete();
+        }
+
+        public async Task<IEnumerable<TaskDto>> GetTasksByUserIdAsync(string userId)
+        {
+            var tasks = await _unitOfWork.Repository<Task>()
+                .GetByCondition(t => t.AssignedUsers.Any(u => u.Id == userId))
+                .Include(t => t.Project)
+                .ToListAsync();
+
             return _mapper.Map<IEnumerable<TaskDto>>(tasks);
         }
     }

@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System.Reflection.Emit;
 using TMPDomain.Entities;
 using Task = TMPDomain.Entities.Task;
 
@@ -36,16 +35,20 @@ namespace Persistence.EntityConfigurations
                 .HasForeignKey(td => td.TaskId);
 
             builder.HasMany(t => t.AssignedUsers)
-                .WithMany(u => u.AssignedTasks);
+                .WithMany(u => u.AssignedTasks)
+                .UsingEntity<Dictionary<string, object>>(
+                    "TaskAssign",
+                    j => j.HasOne<User>().WithMany().HasForeignKey("UserId"),
+                    j => j.HasOne<Task>().WithMany().HasForeignKey("TaskId"))
+                .ToTable("TaskAssignees");
 
             builder.HasMany(t => t.Tags)
-                .WithMany(tag => tag.Tasks) 
+                .WithMany(tag => tag.Tasks)
                 .UsingEntity(j => j.ToTable("TaskTags"));
 
-            builder
-            .HasMany(t => t.Reminders)
-            .WithOne(u => u.Task)
-            .HasForeignKey(t => t.TaskId);
+            builder.HasMany(t => t.Reminders)
+                .WithOne(u => u.Task)
+                .HasForeignKey(t => t.TaskId);
         }
     }
 }
