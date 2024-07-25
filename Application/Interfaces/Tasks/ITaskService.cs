@@ -1,9 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using TMP.Application.DTOs.TaskDtos;
-using TMPDomain.ValueObjects;
+﻿using TMP.Application.DTOs.TaskDtos;
 
-namespace TMP.Application.Tasks
+namespace TMPApplication.Interfaces.Tasks
 {
     public interface ITaskService
     {
@@ -14,7 +11,11 @@ namespace TMP.Application.Tasks
         Task<bool> UpdateTaskAsync(int id, AddTaskDto updatedTask);
         Task<bool> DeleteTaskAsync(int id);
         Task<IEnumerable<TaskDto>> GetTasksAsync(int? projectId);
-        Task<bool> AssignUserToTask(int taskId, string userId);
-        Task<bool> UpdateStatusOfTask(int taskId, StatusOfTask newState);
+        Task<bool> AssignUserToTaskAsync(AssignUserToTaskDto assignUserToTaskDto);
+        Task<bool> RemoveUserFromTaskAsync(RemoveUserFromTaskDto removeUserFromTaskDto);
+        Task<bool> UpdateStatusOfTask(UpdateTaskStatusDto updateTaskStatusDto);
+        Task<IEnumerable<TaskDto>> GetTasksByUserIdAsync(string userId);
+
+
     }
 }
