@@ -28,6 +28,9 @@ namespace TMP.Persistence
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<ProjectUser> ProjectUsers { get; set; }
         public DbSet<Subtask> Subtasks { get; set; }
+        public DbSet<Team> Teams { get; set; }
+        public DbSet<TeamMember> TeamMembers { get; set; }
+        public DbSet<ProjectTeam> ProjectTeams { get; set; }
 
         public void Save()
         {
@@ -57,6 +60,9 @@ namespace TMP.Persistence
             new NotificationConfiguration().Configure(builder.Entity<Notification>());
             new ProjectUserConfiguration().Configure(builder.Entity<ProjectUser>());
             new SubtaskConfiguration().Configure(builder.Entity<Subtask>());
+            new TeamConfiguration().Configure(builder.Entity<Team>());
+            new TeamConfiguration().Configure(builder.Entity<TeamMember>());
+            new ProjectTeamConfiguration().Configure(builder.Entity<ProjectTeam>());
         }
     }
 }

@@ -1,8 +1,8 @@
 ﻿using TMPDomain.Enumerations;
 
-namespace TMPApplication.DTOs.ProjectUserDtos
+namespace TMP.Application.DTOs.TeamDtos
 {
-    public class UpdateProjectUserRoleDto
+    public class UpdateTeamMemberRoleDto
     {
         public string UserId { get; set; }
         public MemberRole NewRole { get; set; }

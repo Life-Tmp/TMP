@@ -18,6 +18,7 @@
         public ICollection<Notification> Notifications { get; set; }
         public ICollection<TaskDuration> TaskDurations { get; set; }
         public ICollection<Task> AssignedTasks { get; set; }
-        public ICollection<ProjectUser> ProjectUsers { get; set; } = new List<ProjectUser>(); // Updated
+        public ICollection<ProjectUser> ProjectUsers { get; set; } = new List<ProjectUser>();
+        public ICollection<TeamMember> TeamMembers { get; set; } = new List<TeamMember>();
     }
 }

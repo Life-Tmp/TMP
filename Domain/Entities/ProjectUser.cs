@@ -8,6 +8,6 @@ namespace TMPDomain.Entities
         public Project Project { get; set; }
         public string UserId { get; set; }
         public User User { get; set; }
-        public ProjectRole Role { get; set; }
+        public MemberRole Role { get; set; }
     }
 }

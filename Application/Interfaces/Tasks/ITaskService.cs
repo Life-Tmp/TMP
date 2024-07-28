@@ -7,15 +7,16 @@ namespace TMPApplication.Interfaces.Tasks
         Task<IEnumerable<TaskDto>> GetAllTasksAsync();
         Task<IEnumerable<TaskDto>> GetTasksByProjectIdAsync(int projectId);
         Task<TaskDto> GetTaskByIdAsync(int id);
-        Task<TaskDto> AddTaskAsync(AddTaskDto newTask);
-        Task<bool> UpdateTaskAsync(int id, AddTaskDto updatedTask);
-        Task<bool> DeleteTaskAsync(int id);
         Task<IEnumerable<TaskDto>> GetTasksAsync(int? projectId);
-        Task<bool> AssignUserToTaskAsync(AssignUserToTaskDto assignUserToTaskDto);
-        Task<bool> RemoveUserFromTaskAsync(RemoveUserFromTaskDto removeUserFromTaskDto);
-        Task<bool> UpdateStatusOfTask(UpdateTaskStatusDto updateTaskStatusDto);
+        Task<IEnumerable<UserDetailsDto>> GetAssignedUsersAsync(int taskId);
         Task<IEnumerable<TaskDto>> GetTasksByUserIdAsync(string userId);
+        Task<TaskDto> AddTaskAsync(AddTaskDto newTask);
+        Task<bool> AssignUserToTaskAsync(AssignUserToTaskDto assignUserToTaskDto);
+        Task<bool> UpdateTaskAsync(int id, AddTaskDto updatedTask);
+        Task<bool> UpdateStatusOfTask(UpdateTaskStatusDto updateTaskStatusDto);
+        Task<bool> DeleteTaskAsync(int id);
+        Task<bool> RemoveUserFromTaskAsync(RemoveUserFromTaskDto removeUserFromTaskDto);
 
-
+        
     }
 }

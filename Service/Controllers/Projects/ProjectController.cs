@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using TMP.Application.DTOs.ProjectDtos;
 using TMP.Application.DTOs.ProjectUserDtos;
+using TMPApplication.DTOs.ProjectDtos;
 using TMPApplication.DTOs.ProjectUserDtos;
 using TMPApplication.Interfaces.Projects;
 
@@ -47,6 +48,46 @@ namespace TMPService.Controllers.Projects
         }
 
         [Authorize]
+        [HttpGet("{id}/role")]
+        public async Task<ActionResult<string>> GetUserRoleInProject(int id)
+        {
+            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var role = await _projectService.GetUserRoleInProjectAsync(id, userId);
+            if (role == null) return NotFound();
+
+            return Ok(role);
+        }
+
+        [HttpGet("{id}/users")]
+        public async Task<ActionResult<ProjectUsersDto>> GetProjectUsers(int id)
+        {
+            var projectUsers = await _projectService.GetProjectUsersAsync(id);
+            if (projectUsers == null) return NotFound();
+
+            return Ok(projectUsers);
+        }
+
+        [HttpGet("{id}/teams")]
+        public async Task<ActionResult<ProjectTeamsDto>> GetProjectTeams(int id)
+        {
+            var projectTeams = await _projectService.GetProjectTeamsAsync(id);
+            if (projectTeams == null) return NotFound();
+
+            return Ok(projectTeams);
+        }
+
+        [HttpGet("{id}/tasks")]
+        public async Task<ActionResult<ProjectTasksDto>> GetProjectTasks(int id)
+        {
+            var projectTasks = await _projectService.GetProjectTasksAsync(id);
+            if (projectTasks == null) return NotFound();
+
+            return Ok(projectTasks);
+        }
+
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<ProjectDto>> AddProject(AddProjectDto newProject)
         {
@@ -55,32 +96,6 @@ namespace TMPService.Controllers.Projects
 
             var project = await _projectService.AddProjectAsync(newProject, userId);
             return CreatedAtAction(nameof(GetProject), new { id = project.Id }, project);
-        }
-
-        [Authorize]
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProject(int id, AddProjectDto updatedProject)
-        {
-            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null) return Unauthorized();
-
-            var result = await _projectService.UpdateProjectAsync(id, updatedProject, userId);
-            if (!result) return Forbid();
-
-            return NoContent();
-        }
-
-        [Authorize]
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProject(int id)
-        {
-            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null) return Unauthorized();
-
-            var result = await _projectService.DeleteProjectAsync(id, userId);
-            if (!result) return Forbid();
-
-            return NoContent();
         }
 
         [Authorize]
@@ -97,6 +112,29 @@ namespace TMPService.Controllers.Projects
         }
 
         [Authorize]
+        [HttpPost("assign-team")]
+        public async Task<IActionResult> AssignTeamToProject(ManageProjectTeamDto manageProjectTeamDto)
+        {
+            var result = await _projectService.AssignTeamToProjectAsync(manageProjectTeamDto);
+            if (!result) return BadRequest();
+
+            return Ok("Team assigned to project successfully.");
+        }
+
+        [Authorize]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProject(int id, AddProjectDto updatedProject)
+        {
+            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var result = await _projectService.UpdateProjectAsync(id, updatedProject, userId);
+            if (!result) return Forbid();
+
+            return NoContent();
+        }
+
+        [Authorize]
         [HttpPatch("{id}/update-user-role")]
         public async Task<IActionResult> UpdateUserRole(int id, UpdateProjectUserRoleDto updateUserRoleDto)
         {
@@ -110,7 +148,20 @@ namespace TMPService.Controllers.Projects
         }
 
         [Authorize]
-        [HttpPost("{id}/remove-user")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProject(int id)
+        {
+            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var result = await _projectService.DeleteProjectAsync(id, userId);
+            if (!result) return Forbid();
+
+            return NoContent();
+        }
+
+        [Authorize]
+        [HttpDelete("{id}/remove-user")]
         public async Task<IActionResult> RemoveUserFromProject(int id, RemoveProjectUserDto removeProjectUserDto)
         {
             var currentUserId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
@@ -122,35 +173,14 @@ namespace TMPService.Controllers.Projects
             return Ok();
         }
 
-        [HttpGet("{id}/users")]
-        public async Task<ActionResult<ProjectUsersDto>> GetProjectUsers(int id)
-        {
-            var projectUsers = await _projectService.GetProjectUsersAsync(id);
-            if (projectUsers == null) return NotFound();
-
-            return Ok(projectUsers);
-        }
-
-        [HttpGet("{id}/tasks")]
-        public async Task<ActionResult<ProjectTasksDto>> GetProjectTasks(int id)
-        {
-            var projectTasks = await _projectService.GetProjectTasksAsync(id);
-            if (projectTasks == null) return NotFound();
-
-            return Ok(projectTasks);
-        }
-
         [Authorize]
-        [HttpGet("{id}/role")]
-        public async Task<ActionResult<string>> GetUserRoleInProject(int id)
+        [HttpDelete("remove-team")]
+        public async Task<IActionResult> RemoveTeamFromProject(ManageProjectTeamDto manageProjectTeamDto)
         {
-            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null) return Unauthorized();
+            var result = await _projectService.RemoveTeamFromProjectAsync(manageProjectTeamDto);
+            if (!result) return BadRequest();
 
-            var role = await _projectService.GetUserRoleInProjectAsync(id, userId);
-            if (role == null) return NotFound();
-
-            return Ok(role);
+            return Ok("Team removed from project successfully.");
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using TMP.Application.DTOs.ProjectDtos;
 using TMP.Application.DTOs.ProjectUserDtos;
+using TMP.Application.DTOs.TeamDtos;
 using TMPApplication.DTOs.UserDtos;
 using TMPDomain.Entities;
 
@@ -25,7 +26,7 @@ namespace TMP.Application.MapperProfiles
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
                 .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.User.FirstName))
                 .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.User.LastName))
-                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role)) 
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role))
                 .ReverseMap();
 
             CreateMap<ProjectUserDto, UserProfileDto>()
@@ -44,6 +45,17 @@ namespace TMP.Application.MapperProfiles
             CreateMap<Project, ProjectTasksDto>()
                 .ForMember(dest => dest.ProjectId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Tasks, opt => opt.MapFrom(src => src.Tasks));
+
+            CreateMap<Project, ProjectTeamsDto>()
+                .ForMember(dest => dest.ProjectId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Teams, opt => opt.MapFrom(src => src.ProjectTeams.Select(pt => new TeamDto
+                {
+                    Id = pt.Team.Id,
+                    Name = pt.Team.Name,
+                    Description = pt.Team.Description,
+                    CreatedAt = pt.Team.CreatedAt,
+                    UpdatedAt = pt.Team.UpdatedAt
+                })));
         }
     }
 }

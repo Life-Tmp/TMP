@@ -1,12 +1,11 @@
 ﻿using TMPDomain.Enumerations;
 
-namespace TMP.Application.DTOs.ProjectUserDtos
+namespace TMP.Application.DTOs.TeamDtos
 {
-    public class AddProjectUserDto
+    public class AddTeamMemberDto
     {
-        public int ProjectId { get; set; }
+        public int TeamId { get; set; }
         public string UserId { get; set; }
         public MemberRole Role { get; set; }
     }
 }
-

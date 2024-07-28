@@ -28,6 +28,10 @@ namespace Persistence.EntityConfigurations
             builder.HasMany(p => p.ProjectUsers)
                 .WithOne(pu => pu.Project)
                 .HasForeignKey(pu => pu.ProjectId);
+
+            builder.HasMany(p => p.ProjectTeams)
+                .WithOne(pt => pt.Project)
+                .HasForeignKey(pt => pt.ProjectId);
         }
     }
 }
