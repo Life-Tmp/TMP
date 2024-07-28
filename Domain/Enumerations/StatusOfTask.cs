@@ -2,7 +2,7 @@
 {
     public enum StatusOfTask
     {
-        NotStarted,
+        ToDo,
         InProgress,
         InReview,
         Done,

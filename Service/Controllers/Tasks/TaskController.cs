@@ -34,6 +34,28 @@ namespace TMPService.Controllers.Tasks
         }
 
         [Authorize]
+        [HttpGet("{id}/assigned-users")]
+        public async Task<ActionResult<IEnumerable<UserDetailsDto>>> GetAssignedUsers(int id)
+        {
+            var users = await _taskService.GetAssignedUsersAsync(id);
+            if (users == null || !users.Any())
+                return NotFound("No users assigned to this task.");
+
+            return Ok(users);
+        }
+
+        [Authorize]
+        [HttpGet("my-tasks")]
+        public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasksByUser()
+        {
+            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var tasks = await _taskService.GetTasksByUserIdAsync(userId);
+            return Ok(tasks);
+        }
+
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<TaskDto>> AddTask([FromBody] AddTaskDto newTask)
         {
@@ -42,26 +64,6 @@ namespace TMPService.Controllers.Tasks
 
             var task = await _taskService.AddTaskAsync(newTask);
             return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
-        }
-
-        [Authorize]
-        [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateTask(int id, [FromBody] AddTaskDto updatedTask)
-        {
-            var result = await _taskService.UpdateTaskAsync(id, updatedTask);
-            if (!result) return NotFound();
-
-            return NoContent();
-        }
-
-        [Authorize]
-        [HttpDelete("{id:int}")]
-        public async Task<IActionResult> DeleteTask(int id)
-        {
-            var result = await _taskService.DeleteTaskAsync(id);
-            if (!result) return NotFound();
-
-            return NoContent();
         }
 
         [Authorize]
@@ -78,16 +80,13 @@ namespace TMPService.Controllers.Tasks
         }
 
         [Authorize]
-        [HttpPost("remove-user")]
-        public async Task<IActionResult> RemoveUserFromTask([FromBody] RemoveUserFromTaskDto removeUserFromTaskDto)
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> UpdateTask(int id, [FromBody] AddTaskDto updatedTask)
         {
-            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-            if (userId == null) return Unauthorized();
+            var result = await _taskService.UpdateTaskAsync(id, updatedTask);
+            if (!result) return NotFound();
 
-            var result = await _taskService.RemoveUserFromTaskAsync(removeUserFromTaskDto);
-            if (!result) return BadRequest("User could not be removed from task.");
-
-            return Ok("User removed from task successfully.");
+            return NoContent();
         }
 
         [HttpPatch("update-status")]
@@ -105,14 +104,26 @@ namespace TMPService.Controllers.Tasks
         }
 
         [Authorize]
-        [HttpGet("my-tasks")]
-        public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasksByUser()
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> DeleteTask(int id)
+        {
+            var result = await _taskService.DeleteTaskAsync(id);
+            if (!result) return NotFound();
+
+            return NoContent();
+        }
+
+        [Authorize]
+        [HttpDelete("remove-user")]
+        public async Task<IActionResult> RemoveUserFromTask([FromBody] RemoveUserFromTaskDto removeUserFromTaskDto)
         {
             var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
             if (userId == null) return Unauthorized();
 
-            var tasks = await _taskService.GetTasksByUserIdAsync(userId);
-            return Ok(tasks);
+            var result = await _taskService.RemoveUserFromTaskAsync(removeUserFromTaskDto);
+            if (!result) return BadRequest("User could not be removed from task.");
+
+            return Ok("User removed from task successfully.");
         }
     }
 }
