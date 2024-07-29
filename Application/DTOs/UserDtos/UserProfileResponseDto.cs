@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TMPDomain.HelperModels
 {
-    public class UserProfileResponse
+    public class UserProfileResponseDto
     {
         
         public string FirstName { get; set; }

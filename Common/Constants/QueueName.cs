@@ -8,7 +8,8 @@ namespace TMPCommon.Constants
 {
     public static class QueueName
     {
-        public static readonly string TaskNotificationQueue = "task-notification-queue";
-        public static readonly string GeneralNotificationQueue = "general-notification-queue";
+        public const string GeneralNotificationQueue = "general-notification";
+        public const string TaskNotificationQueue = "task-notification";
+        public const string ReminderQueue = "reminder";
     }
 }

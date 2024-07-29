@@ -4,6 +4,7 @@ using TMP.Application.DTOs.TaskDtos;
 using TMP.Application.Interfaces;
 using TMPApplication.Interfaces.Tasks;
 using TMPApplication.Notifications;
+using TMPCommon.Constants;
 using TMPDomain.Entities;
 using Task = TMPDomain.Entities.Task;
 
@@ -113,6 +114,11 @@ namespace TMPInfrastructure.Implementations.Tasks
             if (user == null) return false;
 
             task.AssignedUsers.Add(user);
+
+            var message = "";
+            var subject = "Task Assignment";
+            await _notificationService.CreateNotification(user.Id,task.Id,message,subject,NotificationType.TaskNotifications);
+
             _unitOfWork.Repository<Task>().Update(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
 

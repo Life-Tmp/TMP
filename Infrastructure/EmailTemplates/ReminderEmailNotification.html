@@ -1,0 +1,57 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reminder Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        .container {
+            padding: 20px;
+            border: 1px solid #ddd;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background-color: #f7f7f7;
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .content {
+            margin: 20px 0;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Task Reminder</h2>
+        </div>
+        <div class="content">
+            <p>Dear {{UserFirstName}} {{UserLastName}},</p>
+            <p>This is a reminder for the task:</p>
+            <p><strong>{{TaskTitle}}</strong></p>
+            <p>{{TaskDescription}}</p>
+            <p>Due date: {{TaskDueDate}}</p>
+            <p>{{NotificationMessage}}</p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message, please do not reply.</p>
+        </div>
+    </div>
+</body>
+</html>
