@@ -20,6 +20,7 @@ using TMPDomain.HelperModels;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace TMPInfrastructure.Implementations
 {
@@ -159,7 +160,7 @@ namespace TMPInfrastructure.Implementations
             }
         }
 
-        public async Task<UserProfileResponse> GetUserProfileAsync(string accessToken)
+        public async Task<UserProfileResponseDto> GetUserProfileAsync(string accessToken)
         {
             try
             {
@@ -172,41 +173,23 @@ namespace TMPInfrastructure.Implementations
                 {
                     
                     var profileJson = await profileResponse.Content.ReadAsStringAsync();
-                    var profileData = JObject.Parse(profileJson);
+                    var profileDataTest = JsonConvert.DeserializeObject<UserProfileDto>(profileJson);
 
-                    
-                    var userProfile = new UserProfileResponse
+                    if (profileDataTest.FirstName.IsNullOrEmpty() || profileDataTest.LastName.IsNullOrEmpty()) 
                     {
-
-                        FirstName = profileData[ClaimTypes.Name]?.ToString(),
-                        LastName = profileData[ClaimTypes.Surname]?.ToString(),
-                        Email = profileData[ClaimTypes.Email]?.ToString(),
-                        Birthdate = profileData[ClaimTypes.DateOfBirth]?.ToString(),
-                        PhoneNumber = profileData[ClaimTypes.MobilePhone]?.ToString(),
-                        ProfilePicture = profileData["picture"]?.ToString()
-
-                    };
-
-                    var id = profileData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"]?.ToString();
-
-                    var userToUpdate =await _unitOfWork.Repository<User>().GetById(x => x.Id == id).FirstOrDefaultAsync();
+                        profileDataTest.FirstName = profileDataTest.Nickname;
+                        profileDataTest.LastName = "";
+                    }
                     
 
+                    var userToUpdate = await _unitOfWork.Repository<User>().GetById(x => x.Id == profileDataTest.Id).FirstOrDefaultAsync();
 
-                    userToUpdate.FirstName = userProfile.FirstName ?? "";
-                    userToUpdate.LastName = userProfile.LastName ?? "";
-                    userToUpdate.Email = userProfile.Email ?? "";
-                    userToUpdate.ProfilePicture = userProfile.ProfilePicture;
-                    userToUpdate.PhoneNumber = userProfile.PhoneNumber;
-                    userToUpdate.Birthdate = DateTime.TryParse(userProfile.Birthdate, out DateTime parsedBirthdate) ? parsedBirthdate : null; //TODO: Check this
-                    userToUpdate.IsEmailVerified = (bool)(profileData["email_verified"] ?? false);
+                    _mapper.Map(profileDataTest, userToUpdate);
                    
                     _unitOfWork.Repository<User>().Update(userToUpdate);
-                    _unitOfWork.Complete();
+                    await _unitOfWork.Repository<User>().SaveChangesAsync();
 
-                    
-                    
-                    return userProfile;
+                    return _mapper.Map<UserProfileResponseDto>(userToUpdate);
                 }
                 else
                 {
@@ -250,7 +233,7 @@ namespace TMPInfrastructure.Implementations
                      requestBody = new
                     {
                         given_name = updateRequest.FirstName,
-                        family_name = updateRequest.LastName,
+                        family_name = updateRequest.LastName,                 //TODO: Check this
 
                         picture = updateRequest.Picture,
                         user_metadata = new
@@ -282,7 +265,7 @@ namespace TMPInfrastructure.Implementations
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    var userToUpdate = _unitOfWork.Repository<User>().GetById(x => x.Id == userId).FirstOrDefaultAsync().Result;
+                    var userToUpdate = await _unitOfWork.Repository<User>().GetById(x => x.Id == userId).FirstOrDefaultAsync();
                     _mapper.Map(updateRequest, userToUpdate);
                     
                     _unitOfWork.Repository<User>().Update(userToUpdate); //To get the object User, not Task<User>
@@ -368,6 +351,144 @@ namespace TMPInfrastructure.Implementations
 
             
         }
+
+
+        public async Task<ApiResponse> ChangePasswordAsync(ChangePasswordRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.OldPassword) ||
+                string.IsNullOrWhiteSpace(request.NewPassword) ||
+                string.IsNullOrWhiteSpace(request.ConfirmNewPassword))
+            {
+                return new ApiResponse
+                {
+                    Success = false,
+                    Message = "Invalid input.",
+                    StatusCode = 400
+                };
+            }
+
+            if (request.NewPassword != request.ConfirmNewPassword)
+            {
+                return new ApiResponse
+                {
+                    Success = false,
+                    Message = "New password and confirmation do not match.",
+                    StatusCode = 400
+                };
+            }
+            var user = _httpContextAccess.HttpContext.User;
+            var emailUser = user.FindFirst(ClaimTypes.Email)?.Value;
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            try
+            {
+                
+                // Verify the old password
+                var authResult = await AuthenticateUserAsync(emailUser, request.OldPassword);
+                if (!authResult.Success)
+                {
+                    return new ApiResponse
+                    {
+                        Success = false,
+                        Message = "Old password is incorrect.",
+                        StatusCode = 400
+                    };
+                }
+
+                // Update the password
+                var client = _httpClientFactory.CreateClient();
+                var auth0ApiToken = await GetManagementApiTokenAsync();
+                var auth0ApiUrl = new Uri($"{_configuration["AuthoritySettings:ManagementEndpoint"]}users/{userId}");
+
+                var requestBody = new
+                {
+                    password = request.NewPassword,
+                    connection = "Username-Password-Authentication" 
+                };
+
+                var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+                var httpRequest = new HttpRequestMessage(HttpMethod.Patch, auth0ApiUrl)
+                {
+                    Content = requestContent
+                };
+
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", auth0ApiToken);
+                httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var response = await client.SendAsync(httpRequest);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Password changed successfully for user ID {UserId}",userId);
+                    return new ApiResponse
+                    {
+                        Success = true,
+                        Message = "Password changed successfully",
+                        StatusCode = 200
+                    };
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError($"Failed to change password for user ID {userId}: {errorContent}");
+                    return new ApiResponse
+                    {
+                        Success = false,
+                        Message = "Failed to change password",
+                        StatusCode = (int)response.StatusCode
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while changing password for user ID {UserId}", userId);
+                return new ApiResponse
+                {
+                    Success = false,
+                    Message = $"An error occurred while changing password: {ex.Message}",
+                    StatusCode = 500
+                };
+            }
+        }
+
+        private async Task<ApiResponse> AuthenticateUserAsync(string email, string password)
+        {
+            var client = _httpClientFactory.CreateClient();
+            var requestBody = new Dictionary<string, string>
+    {
+        { "grant_type", "password" },
+        { "username", email },
+        { "password", password },
+        { "audience", _configuration["AuthoritySettings:Scope"] },
+        { "client_id", _configuration["AuthoritySettings:ClientId"] },
+        { "client_secret", _configuration["AuthoritySettings:ClientSecret"] },
+        { "scope", "openid profile email" }
+    };
+
+            var requestContent = new FormUrlEncodedContent(requestBody);
+            var response = await client.PostAsync($"{_configuration["AuthoritySettings:TokenEndpoint"]}", requestContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = true };
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                return new ApiResponse
+                {
+                    Success = false,
+                    Message = "Authentication failed",
+                    StatusCode = (int)response.StatusCode
+                };
+            }
+        }
+
+
+
+
+        
+
 
     }
 

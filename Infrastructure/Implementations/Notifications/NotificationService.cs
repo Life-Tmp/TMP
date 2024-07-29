@@ -14,6 +14,8 @@ using TMPInfrastructure.Messaging;
 using Amazon.Runtime.Internal.Util;
 using Microsoft.Extensions.Logging;
 using TMPCommon.Constants;
+using TMPApplication.DTOs.NotificationDtos;
+using AutoMapper;
 
 namespace TMPInfrastructure.Implementations.Notifications
 {
@@ -23,13 +25,15 @@ namespace TMPInfrastructure.Implementations.Notifications
         private readonly IHttpContextAccessor _httpContextAccess;
         private readonly RabbitMQService _rabbitMQConfig;
         private readonly ILogger<NotificationService> _logger;
+        private readonly IMapper _mapper;
 
-        public NotificationService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccess, RabbitMQService rabbitMQConfig,ILogger<NotificationService> logger)
+        public NotificationService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccess, RabbitMQService rabbitMQConfig, ILogger<NotificationService> logger, IMapper mapper)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
             _httpContextAccess = httpContextAccess;
             _rabbitMQConfig = rabbitMQConfig;
+            _mapper = mapper;
         }
 
         public async Task CreateNotification(string userId,int? taskId, string message,string subject,string type)
@@ -53,7 +57,7 @@ namespace TMPInfrastructure.Implementations.Notifications
 
         }
 
-        public async Task<List<Notification>> GetAllNotifications()
+        public async Task<List<NotificationDto>> GetAllNotifications()
         {
             var userId = _httpContextAccess.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier).Value;
             var allNotifications = await _unitOfWork.Repository<Notification>().GetByCondition(x => x.UserId == userId).ToListAsync();
@@ -63,9 +67,21 @@ namespace TMPInfrastructure.Implementations.Notifications
                 return null; //TODO: Dont return null, try the other solution
             }
 
-            return allNotifications;
+            return _mapper.Map<List<NotificationDto>>(allNotifications);
         }
+        public async Task<List<NotificationDto>> GetLatestNotifications(int numberOfLatestNotifications)
+        {
+            var userId = _httpContextAccess.HttpContext.User.Claims.
+                                                    FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier).Value;
 
+            var allNotifications = await _unitOfWork.Repository<Notification>()
+                                                    .GetByCondition(x => x.UserId == userId)
+                                                    .OrderByDescending(x => x.CreatedAt) 
+                                                    .Take(numberOfLatestNotifications) 
+                                                    .ToListAsync();
+
+            return _mapper.Map<List<NotificationDto>>(allNotifications);
+        }
         public async Task MarksAsRead(int notificationId)
         {
             var notification = await _unitOfWork.Repository<Notification>().GetById(x => x.Id == notificationId).FirstOrDefaultAsync();

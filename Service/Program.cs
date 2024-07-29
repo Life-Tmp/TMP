@@ -1,5 +1,3 @@
-
-
 using Amazon.S3;
 using Microsoft.OpenApi.Models;
 using System.Runtime.Loader;
@@ -31,6 +29,8 @@ using TMPInfrastructure.Implementations.Reminders;
 using Hangfire;
 using TMPApplication.Interfaces.Subtasks;
 using TMPInfrastructure.Implementations.Subtasks;
+using TMPApplication.Hubs;
+using TMPApplication.Interfaces.Invitations;
 namespace TMP.Service;
 
 class Program
@@ -78,7 +78,7 @@ class Program
             c.MapType<IFormFile>(() => new OpenApiSchema { Type = "file" });
         }
 );
-
+        
 
         builder.Services.AddAdvancedDependencyInjection();
         var logger = new LoggerConfiguration()
@@ -92,9 +92,14 @@ class Program
             .AddClasses()
             .AsMatchingInterface());
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddSignalR();
+        builder.Services.AddSignalR(options =>
+        {
+            options.EnableDetailedErrors = true;
+        });
         builder.Services.AddDbContext<DatabaseService>();
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        
 
         builder.Services.AddAutoMapper(assemblies); //CHECK: I think this is better, just need to TEST
         var awsOptions = new AWSOptions
@@ -114,6 +119,7 @@ class Program
         builder.Services.AddScoped<IAttachmentService, AttachmentService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddTransient<INotificationService, NotificationService>();
+        builder.Services.AddScoped<IInvitationsService, InvitationService>();
         builder.Services.AddTransient<IEmailService, EmailService>();
        
         builder.Services.AddScoped<ICommentService, CommentService>();
@@ -162,20 +168,21 @@ class Program
                 c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
             });
         }
-
+       
         app.UseHttpsRedirection();
         app.UseRouting();
         app.UseHangfireDashboard();
         app.UseAuthentication();
         app.UseAuthorization();
-
+        app.UseCors("AllowAllOrigins");
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllers();
             endpoints.MapHub<CommentHub>("/commentHub"); // Map the SignalR hub
+            endpoints.MapHub<NotificationHub>("/notificationHub");
             endpoints.MapHangfireDashboard();
         });
-
+        
 
         app.MapControllers();
 

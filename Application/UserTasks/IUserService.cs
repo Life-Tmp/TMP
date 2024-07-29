@@ -16,9 +16,10 @@ namespace TMPApplication.UserTasks
     {
         Task<LoginResponse> LoginWithCredentials(LoginRequest loginRequest);
         Task<Dictionary<string, object>> RegisterWithCredentials(RegisterRequest registerRequest);
-        Task<UserProfileResponse> GetUserProfileAsync(string acessToken);
+        Task<UserProfileResponseDto> GetUserProfileAsync(string acessToken);
         Task<IActionResult> UpdateUserProfileAsync(string userId, UserProfileUpdateDto updateRequest);
         Task<ApiResponse> DeleteUserAsync(string userId);
+        Task<ApiResponse> ChangePasswordAsync(ChangePasswordRequest request);
 
     }
 }

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using TMPCommon.Constants;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,8 +16,6 @@ namespace TMPInfrastructure.Messaging
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IModel _channel;
         private readonly ILogger<RabbitMQConsumer> _logger;
-
-
 
         public RabbitMQConsumer(IModel channel, ILogger<RabbitMQConsumer> logger, IServiceScopeFactory serviceScopeFactory)
         {
@@ -44,54 +43,36 @@ namespace TMPInfrastructure.Messaging
             using (var scope = _serviceScopeFactory.CreateScope())
             {
                 var messageHandler  = scope.ServiceProvider.GetRequiredService<MessageHandler>(); //For later
-                switch (queueName)
-                {
 
-                    case "general-notification": //TODO: Use constants
-                        try
-                        {
-                            await messageHandler.HandleNotificationAsync(message);
-                            _channel.BasicAck(deliveryTag, false);
-                            _logger.LogInformation($"Message processed successfully from queue: {queueName}");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error processing message: {Message}", message);
-                            _channel.BasicNack(deliveryTag, false, false); //TODO: Reject the message and move it to the dead-letter queue
-                        }
-                        break;
-                    case "task-notification":
-                        try
-                        {
-                            await messageHandler.HandleTaskNotifications(message);
-                            _channel.BasicAck(deliveryTag, false);
-                            _logger.LogInformation($"Message processed successfully from queue: {queueName}");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error processing message: {Message}", message);
-                            _channel.BasicNack(deliveryTag, false, false); //TODO: Reject the message and move it to the dead-letter queue
-                        }
-                        break;
-                    case "reminder": //TODO: Use constants
-                        try
-                        {
-                            await messageHandler.HandleNotificationAsync(message);
-                            _channel.BasicAck(deliveryTag, false);
-                            _logger.LogInformation($"Message processed successfully from queue: {queueName}");
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error processing message: {Message}", message);
-                            _channel.BasicNack(deliveryTag, false, false); //TODO: Reject the message and move it to the dead-letter queue
-                        }
-                        break;
-                    default:
-                        Console.WriteLine($"Unhandled queue: {queueName}");
-                        _logger.LogWarning($"Unhandled queue: {queueName}");
-                        break;
+                try
+                {
+                    switch (queueName)
+                    {
+
+                        case NotificationType.GeneralNotifications:
+                                await messageHandler.HandleNotificationAsync(message);                                
+                            break;
+                        case NotificationType.TaskNotifications:
+                                await messageHandler.HandleTaskNotifications(message);
+                            break;
+                        case NotificationType.Reminders: //TODO: Use constants
+                                await messageHandler.HandleReminderNotificationAsync(message);
+                            break;
+                        default:
+                            Console.WriteLine($"Unhandled queue: {queueName}");
+                            _logger.LogWarning($"Unhandled queue: {queueName}");
+                            break;
+                    }
+                    _channel.BasicAck(deliveryTag, false);
+                    _logger.LogInformation($"Message processed successfully from queue: {queueName}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing message: {Message}", message);
+                    _channel.BasicNack(deliveryTag, false, false); //TODO: Reject the message and move it to the dead-letter queue
                 }
             }
+                
                 
         }
     }

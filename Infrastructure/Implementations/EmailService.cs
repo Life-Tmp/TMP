@@ -51,6 +51,34 @@ namespace TMPInfrastructure.Implementations
             await client.PostAsync(emailRequest);
         }
 
+
+        public async Task SendEmailInvite(string email, string subject, string content)
+        {
+            var client = new MailjetClient(_configuration["Mailjet:ApiKey"], _configuration["Mailjet:ApiSecret"]);
+
+            
+            
+
+            var emailRequest = new MailjetRequest
+            {
+                Resource = Send.Resource
+            }
+            .Property(Send.FromEmail, _configuration["Mailjet:FromEmail"])
+            .Property(Send.FromName, _configuration["Mailjet:FromName"])
+            .Property(Send.Subject, subject)
+            .Property(Send.HtmlPart, content)
+            .Property(Send.Recipients, new JArray
+            {
+            new JObject
+            {
+                {"Email", email},
+
+            }
+            });
+            Console.WriteLine($"Invitation {email}");
+            await client.PostAsync(emailRequest);
+        }
+
         private async Task<string> GetEmailTemplateAsync(string emailPath)
         {
             using (StreamReader reader = new StreamReader(emailPath))
