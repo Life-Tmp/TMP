@@ -8,8 +8,8 @@ namespace TMPCommon.Constants
 {
     public static class NotificationType
     {
-        public static readonly string TaskAssignment;
-        public static readonly string GeneralNotification;
-        public static readonly string TaskUpdates;
+        public const string GeneralNotifications = "general-notification";
+        public const string TaskNotifications = "task-notification";
+        public const string Reminders = "reminder";
     }
 }

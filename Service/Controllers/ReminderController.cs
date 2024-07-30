@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using TMPApplication.DTOs.ReminderDtos;
 using TMPApplication.Interfaces.Reminders;
 
@@ -15,15 +16,42 @@ namespace TMPService.Controllers
             _reminderService = reminderService;
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetReminderAsync(int id)
+        {
+            if (id <= 0)
+            {
+                return BadRequest("The reminderId must be a positive integer.");
+            }
+            var reminder = await _reminderService.GetReminderAsync(id);
 
-        [HttpPost("add-reminder")]
+            if (reminder != null)
+                return Ok(reminder);
+            return NoContent();
+        }
+        [HttpGet("task/{id}")]
+        public async Task<IActionResult> GetRemindersForTask(int id)
+        {
+            if (id <= 0)
+            {
+                return BadRequest("Not a valid task Id");
+            }
+
+            var reminderList = await _reminderService.GetRemindersForTask(id);
+
+            return Ok(reminderList);
+        }
+
+        [HttpPost("add")]
+        [Authorize]
         public async Task<IActionResult> CreateReminder(string description, DateTime reminderDate, int taskId)
         {
+
             await _reminderService.CreateReminderAsync( description, reminderDate, taskId);
             return Ok("Successfully created a reminder");
         }
 
-        [HttpPost("process-reminder")]
+        [HttpPost("process-testing")]
         public async Task<IActionResult> ProcessReminder(int reminderId)
         {
             await _reminderService.ProcessReminder(reminderId);
@@ -40,8 +68,6 @@ namespace TMPService.Controllers
             }
             return BadRequest();
         }
-
-
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteReminder(int id)

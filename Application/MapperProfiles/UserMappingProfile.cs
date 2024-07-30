@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using TMPApplication.DTOs.UserDtos;
 using TMPDomain;
 using TMPDomain.Entities;
+using TMPDomain.HelperModels;
 namespace TMPApplication.MapperProfiles
 {
     public class UserMappingProfile: Profile
@@ -16,6 +17,7 @@ namespace TMPApplication.MapperProfiles
             CreateMap<UserRegisterDto, User>().ReverseMap();
             CreateMap<UserProfileDto, User>().ReverseMap();
             CreateMap<UserProfileUpdateDto, User>().ReverseMap();
+            CreateMap<User, UserProfileResponseDto>().ReverseMap();
         }
 
     }

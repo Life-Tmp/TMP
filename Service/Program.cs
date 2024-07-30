@@ -35,6 +35,8 @@ using System.Configuration;
 using StackExchange.Redis;
 using Nest;
 using Elasticsearch.Net;
+using TMPApplication.Hubs;
+using TMPApplication.Interfaces.Invitations;
 namespace TMP.Service;
 
 class Program

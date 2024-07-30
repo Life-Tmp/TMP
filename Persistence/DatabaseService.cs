@@ -28,9 +28,11 @@ namespace TMP.Persistence
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<ProjectUser> ProjectUsers { get; set; }
         public DbSet<Subtask> Subtasks { get; set; }
+        public DbSet<Invitation> Invitations {  get; set; }
         public DbSet<Team> Teams { get; set; }
         public DbSet<TeamMember> TeamMembers { get; set; }
         public DbSet<ProjectTeam> ProjectTeams { get; set; }
+        public DbSet<Invitation> Invitations {  get; set; }
 
         public void Save()
         {

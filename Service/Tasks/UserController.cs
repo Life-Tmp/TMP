@@ -6,10 +6,12 @@ using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
+using System.Security.Claims;
 using System.Text;
 using TMPApplication.DTOs.UserDtos;
 using TMPApplication.UserTasks;
 using TMPDomain.HelperModels;
+using static TMPInfrastructure.Implementations.UserService;
 
 namespace TMPService.Tasks
 {
@@ -58,7 +60,7 @@ namespace TMPService.Tasks
         }
 
 
-        [HttpGet("user-profile")]
+        [HttpGet("profile")]
         [Authorize]
         public async Task<IActionResult> GetUserProfileInfo()
         {
@@ -72,7 +74,7 @@ namespace TMPService.Tasks
             }
             return BadRequest();
         }
-        [HttpPatch("update/user")]
+        [HttpPut("profile/update")]
         [Authorize]
         public async Task<IActionResult> UpdateUserProfile(string userId, [FromBody] UserProfileUpdateDto updateRequest)
         {
@@ -90,6 +92,27 @@ namespace TMPService.Tasks
             return BadRequest(deleteResponse);
         }
 
+        [HttpPatch("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Invalid input.");
+            }
+            
+
+            var response = await _userService.ChangePasswordAsync(request);
+
+            if (response.Success)
+            {
+                return Ok(response);
+            }
+            else
+            {
+                return StatusCode(response.StatusCode, response);
+            }
+        }
 
     }
 }
