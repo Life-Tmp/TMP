@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using TMPApplication.DTOs.ReminderDtos;
 using TMPApplication.Interfaces.Reminders;
 
 namespace TMPService.Controllers
@@ -27,6 +28,35 @@ namespace TMPService.Controllers
         {
             await _reminderService.ProcessReminder(reminderId);
             return Ok();
+        }
+
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> UpdateReminder(int id,[FromBody] ReminderDto reminderdto)
+        {
+            var isUpdated = await _reminderService.UpdateReminder(id,reminderdto);
+            if (isUpdated)
+            {
+                return Ok("Updated successfully");
+            }
+            return BadRequest();
+        }
+
+
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteReminder(int id)
+        {
+            if (id <= 0)
+            {
+                return BadRequest("The reminder id must be a positive integer.");
+            }
+            var isDeleted = await _reminderService.DeleteReminder(id);
+            if (isDeleted)
+            {
+                return Ok("Deleted successfully");
+            }
+
+            return NotFound("Reminder not found.");
         }
 
     }

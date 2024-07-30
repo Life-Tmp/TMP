@@ -1,5 +1,8 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Newtonsoft.Json;
+using StackExchange.Redis;
 using TMP.Application.DTOs.TaskDtos;
 using TMP.Application.Interfaces;
 using TMPApplication.Interfaces.Tasks;
@@ -15,21 +18,38 @@ namespace TMPInfrastructure.Implementations.Tasks
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
+        private readonly StackExchange.Redis.IDatabase _cache;
 
-        public TaskService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService)
+        public TaskService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService, IConnectionMultiplexer redis)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
+            _cache = redis.GetDatabase();
         }
 
         public async Task<IEnumerable<TaskDto>> GetAllTasksAsync()
         {
+            var cacheKey = "all_tasks";
+            var cachedTasks = await _cache.StringGetAsync(cacheKey);
+
+            if (cachedTasks.HasValue)
+            {
+                // Why newton json vs text.json
+                var task = JsonConvert.DeserializeObject<IEnumerable<TaskDto>>(cachedTasks);
+                return task;
+            }
+
             var tasks = await _unitOfWork.Repository<Task>().GetAll()
                 .Include(t => t.Project)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<TaskDto>>(tasks);
+            var taskDtos = _mapper.Map<IEnumerable<TaskDto>>(tasks);
+
+           
+            await _cache.StringSetAsync(cacheKey, JsonConvert.SerializeObject(taskDtos), TimeSpan.FromMinutes(10));
+
+            return taskDtos;
         }
 
         public async Task<IEnumerable<TaskDto>> GetTasksByProjectIdAsync(int projectId)
