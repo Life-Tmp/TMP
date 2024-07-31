@@ -1,42 +1,35 @@
+using Amazon;
+using Amazon.Extensions.NETCore.Setup;
+using Amazon.Runtime;
 using Amazon.S3;
+using Elasticsearch.Net;
+using Hangfire;
 using Microsoft.OpenApi.Models;
+using Nest;
+using Serilog;
+using StackExchange.Redis;
 using System.Runtime.Loader;
+using TMP.Application.Comments;
+using TMP.Application.Hubs;
 using TMP.Application.Interfaces;
+using TMP.Application.Interfaces.Tags;
+using TMP.Infrastructure.Implementations;
+using TMP.Infrastructure.Implementations.Tags;
 using TMP.Persistence;
 using TMP.Service.Helpers;
-using TMPApplication.MapperProfiles;
 using TMPApplication.AttachmentTasks;
-using TMPInfrastructure.Implementations;
-using Amazon.Extensions.NETCore.Setup;
-using Amazon.S3.Transfer;
-using Amazon;
-using Amazon.Runtime;
-using TMPApplication.UserTasks;
-using TMPApplication.Notifications;
-using TMPInfrastructure.Implementations.Notifications;
-using TMPInfrastructure.Messaging;
-using Serilog;
-using TMP.Application.Comments;
-using TMP.Infrastructure.Implementations;
-using TMP.Application.Hubs;
-using System.IO;
-using System;
-using TMP.Application.Interfaces.Tags;
-using TMP.Infrastructure.Implementations.Tags;
+using TMPApplication.Hubs;
 using TMPApplication.Interfaces;
+using TMPApplication.Interfaces.Invitations;
 using TMPApplication.Interfaces.Reminders;
-using TMPInfrastructure.Implementations.Reminders;
-using Hangfire;
 using TMPApplication.Interfaces.Subtasks;
+using TMPApplication.Notifications;
+using TMPApplication.UserTasks;
+using TMPInfrastructure.Implementations;
+using TMPInfrastructure.Implementations.Notifications;
+using TMPInfrastructure.Implementations.Reminders;
 using TMPInfrastructure.Implementations.Subtasks;
-using TMPApplication.Hubs;
-using TMPApplication.Interfaces.Invitations;
-using System.Configuration;
-using StackExchange.Redis;
-using Nest;
-using Elasticsearch.Net;
-using TMPApplication.Hubs;
-using TMPApplication.Interfaces.Invitations;
+using TMPInfrastructure.Messaging;
 namespace TMP.Service;
 
 class Program
@@ -84,8 +77,19 @@ class Program
             c.MapType<IFormFile>(() => new OpenApiSchema { Type = "file" });
         }
 );
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAllOrigins",
+                builder =>
+                {
+                    builder.AllowAnyOrigin()
+                           .AllowAnyHeader()
+                           .AllowAnyMethod();
+                }
+                );
+        });
         
-
+        
         builder.Services.AddAdvancedDependencyInjection();
         var logger = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
@@ -104,8 +108,8 @@ class Program
         });
         builder.Services.AddDbContext<DatabaseService>();
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+        builder.Services.AddSingleton<ICacheService, CacheService>();
 
-        
 
         builder.Services.AddAutoMapper(assemblies); //CHECK: I think this is better, just need to TEST
         var awsOptions = new AWSOptions

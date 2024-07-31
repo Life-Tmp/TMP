@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using StackExchange.Redis;
 using TMP.Application.DTOs.TaskDtos;
 using TMP.Application.Interfaces;
+using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Tasks;
 using TMPApplication.Notifications;
 using TMPCommon.Constants;
@@ -19,27 +20,22 @@ namespace TMPInfrastructure.Implementations.Tasks
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
-        private readonly StackExchange.Redis.IDatabase _cache;
+        private readonly ICacheService _cache;
 
-        public TaskService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService, IConnectionMultiplexer redis)
+        public TaskService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService, ICacheService cache)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
-            _cache = redis.GetDatabase();
+            _cache = cache;
         }
 
         public async Task<IEnumerable<TaskDto>> GetAllTasksAsync()
         {
-            var cacheKey = "all_tasks";
-            var cachedTasks = await _cache.StringGetAsync(cacheKey);
-
-            if (cachedTasks.HasValue)
-            {
-                // Why newton json vs text.json
-                var task = JsonConvert.DeserializeObject<IEnumerable<TaskDto>>(cachedTasks);
-                return task;
-            }
+            var cacheKey = TasksConstants.AllTasks;
+            var cachedTasks = await _cache.GetAsync<IEnumerable<TaskDto>>(cacheKey);
+            if (cachedTasks != null)
+                return cachedTasks;
 
             var tasks = await _unitOfWork.Repository<Task>().GetAll()
                 .Include(t => t.Project)
@@ -47,34 +43,56 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             var taskDtos = _mapper.Map<IEnumerable<TaskDto>>(tasks);
 
-           
-            await _cache.StringSetAsync(cacheKey, JsonConvert.SerializeObject(taskDtos), TimeSpan.FromMinutes(10));
+            await _cache.SetAsync(cacheKey, taskDtos, TimeSpan.FromMinutes(60));
 
             return taskDtos;
         }
 
         public async Task<IEnumerable<TaskDto>> GetTasksByProjectIdAsync(int projectId)
         {
+            var chacheKey = string.Format(TasksConstants.TasksByProject, projectId);
+            var cachedTasks = await _cache.GetAsync<IEnumerable<TaskDto>>(chacheKey);
+            if (cachedTasks != null)
+                return cachedTasks;
+
             var tasks = await _unitOfWork.Repository<Task>().GetByCondition(t => t.ProjectId == projectId)
                 .Include(t => t.Project)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<TaskDto>>(tasks);
+            var tasksDto =  _mapper.Map<IEnumerable<TaskDto>>(tasks);
+
+            await _cache.SetAsync(chacheKey, tasksDto);
+
+            return tasksDto;
         }
 
         public async Task<TaskDto> GetTaskByIdAsync(int id)
         {
+            var cacheKey = string.Format(TasksConstants.TaskById, id);
+            var cachedTask = await _cache.GetAsync<TaskDto>(cacheKey);
+
+            if(cachedTask != null) { return cachedTask;}
+
             var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id)
                 .Include(t => t.Project)
                 .FirstOrDefaultAsync();
 
             if (task == null) return null;
 
-            return _mapper.Map<TaskDto>(task);
+            var taskDto = _mapper.Map<TaskDto>(task);
+
+            await _cache.SetAsync(cacheKey, taskDto);
+
+            return taskDto;
         }
 
-        public async Task<IEnumerable<TaskDto>> GetTasksAsync(int? projectId)
+        public async Task<IEnumerable<TaskDto>> GetTasksAsync(int? projectId) //CHECK
         {
+            var cacheKey = string.Format(TasksConstants.TasksByProject, projectId);
+            var cachedTask = await _cache.GetAsync<IEnumerable<TaskDto>>(cacheKey);
+            if (cachedTask != null)
+                return cachedTask;
+
             IQueryable<Task> query = _unitOfWork.Repository<Task>().GetAll();
 
             if (projectId.HasValue)
@@ -83,11 +101,20 @@ namespace TMPInfrastructure.Implementations.Tasks
             }
 
             var tasks = await query.Include(t => t.Project).ToListAsync();
-            return _mapper.Map<IEnumerable<TaskDto>>(tasks);
+            var tasksDto = _mapper.Map<IEnumerable<TaskDto>>(tasks);
+
+            await _cache.SetAsync(cacheKey, tasksDto);
+
+            return tasksDto;
         }
 
         public async Task<IEnumerable<UserDetailsDto>> GetAssignedUsersAsync(int taskId)
         {
+            var cacheKey = string.Format(TasksConstants.UsersByTask,taskId);
+            var cachedUsers = await _cache.GetAsync<IEnumerable<UserDetailsDto>>(cacheKey);
+            if (cachedUsers != null)
+                return cachedUsers;
+
             var task = await _unitOfWork.Repository<Task>()
                 .GetById(t => t.Id == taskId)
                 .Include(t => t.AssignedUsers)
@@ -96,21 +123,34 @@ namespace TMPInfrastructure.Implementations.Tasks
             if (task == null)
                 return null;
 
-            return task.AssignedUsers.Select(u => new UserDetailsDto
+            var usersDto =  task.AssignedUsers.Select(u => new UserDetailsDto
             {
                 FirstName = u.FirstName,
                 LastName = u.LastName
             }).ToList();
+
+            await _cache.SetAsync(cacheKey, usersDto);
+
+            return usersDto;
         }
 
         public async Task<IEnumerable<TaskDto>> GetTasksByUserIdAsync(string userId)
         {
+            var cacheKey = string.Format(TasksConstants.TasksByUser);
+            var cachedTasks = await _cache.GetAsync<IEnumerable<TaskDto>>(cacheKey);
+
+            if (cachedTasks != null)
+                return cachedTasks;
+
             var tasks = await _unitOfWork.Repository<Task>()
                 .GetByCondition(t => t.AssignedUsers.Any(u => u.Id == userId))
                 .Include(t => t.Project)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<TaskDto>>(tasks);
+            var tasksDto = _mapper.Map<IEnumerable<TaskDto>>(tasks);
+            await _cache.SetAsync(cacheKey, tasksDto);
+
+            return tasksDto;
         }
 
         public async Task<TaskDto> AddTaskAsync(AddTaskDto newTask)
@@ -119,6 +159,11 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             _unitOfWork.Repository<Task>().Create(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
+
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
+
             return _mapper.Map<TaskDto>(task);
         }
 
@@ -142,6 +187,9 @@ namespace TMPInfrastructure.Implementations.Tasks
             _unitOfWork.Repository<Task>().Update(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
 
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.UsersByTask,task.Id));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByUser,user.Id)); //Because a user gets a new task 
+            
             return true;
         }
 
@@ -156,6 +204,10 @@ namespace TMPInfrastructure.Implementations.Tasks
             _unitOfWork.Repository<Task>().Update(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
 
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById,task.Id));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject,task.ProjectId));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
+
             return true;
         }
 
@@ -169,6 +221,11 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             task.Status = updateTaskStatusDto.Status;
             _unitOfWork.Repository<Task>().Update(task);
+
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks)); //Check -- maybe remove these one, cause it will be needed only to count the nr tasks
+
             return _unitOfWork.Complete();
         }
 
@@ -179,6 +236,16 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             _unitOfWork.Repository<Task>().Delete(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
+
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.UsersByTask, task.Id));
+            foreach (var user in task.AssignedUsers)
+            {
+                await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByUser, user.Id));
+            }
+
             return true;
         }
 
@@ -207,6 +274,12 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             _unitOfWork.Repository<Task>().Update(task);
             var result = _unitOfWork.Complete();
+
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.UsersByTask, task.Id));
+            foreach (var theUser in task.AssignedUsers)
+            {
+                await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByUser, theUser.Id));
+            }
 
             return result;
         }

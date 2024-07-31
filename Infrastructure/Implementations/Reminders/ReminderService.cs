@@ -58,6 +58,7 @@ namespace TMPInfrastructure.Implementations.Reminders
             var mappedReminder = _mapper.Map<GetReminderDto>(reminder);
             return mappedReminder;
         }
+
         public async Task<List<GetReminderDto>> GetRemindersForTask(int taskId)
         {
             var reminderList = await _unitOfWork.Repository<Reminder>().GetByCondition(x => x.TaskId == taskId).ToListAsync();
@@ -72,8 +73,6 @@ namespace TMPInfrastructure.Implementations.Reminders
             return mappedReminders;
 
         }
-
-        
 
         public async Task CreateReminderAsync(string description, DateTime reminderDate, int taskId)
         {
@@ -109,6 +108,7 @@ namespace TMPInfrastructure.Implementations.Reminders
             
 
         }
+
         private void ScheduleReminder(int reminderId, DateTime reminderDate)
         {
             // Schedule the job to run at the reminder date
@@ -125,6 +125,7 @@ namespace TMPInfrastructure.Implementations.Reminders
             _logger.LogInformation($"Reminder with ID:{reminderId} successfully scheduled for: {reminderDate}");
 
         }
+
         public async Task ProcessReminder(int reminderId)
         {
             try
@@ -203,7 +204,6 @@ namespace TMPInfrastructure.Implementations.Reminders
             _logger.LogInformation($"Reminder with ID: {reminderId} successfully updated");
             _unitOfWork.Complete();
 
-            //TODO: check if it works like this
            
             return true;
         }

@@ -5,7 +5,7 @@
         ToDo,
         InProgress,
         InReview,
-        Done,
-        Accepted
+        Testing,
+        Done
     }
 }

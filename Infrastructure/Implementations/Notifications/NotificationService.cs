@@ -1,21 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Task = System.Threading.Tasks.Task;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 using TMP.Application.Interfaces;
+using TMPApplication.DTOs.NotificationDtos;
 using TMPApplication.Notifications;
 using TMPDomain.Entities;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
 using TMPInfrastructure.Messaging;
-using Amazon.Runtime.Internal.Util;
-using Microsoft.Extensions.Logging;
-using TMPCommon.Constants;
-using TMPApplication.DTOs.NotificationDtos;
-using AutoMapper;
+using Task = System.Threading.Tasks.Task;
 
 namespace TMPInfrastructure.Implementations.Notifications
 {
@@ -48,7 +41,6 @@ namespace TMPInfrastructure.Implementations.Notifications
                 IsRead = false,
                 NotificationType = type
             };
-            //notification.User = null; //TODO: Find a way to serialize even the relationship
             _unitOfWork.Repository<Notification>().Create(notification);
             Console.WriteLine("Created Notification");
             _unitOfWork.Complete();
@@ -92,7 +84,6 @@ namespace TMPInfrastructure.Implementations.Notifications
                _unitOfWork.Complete();
             }
                 
-
         }
     }
 }
