@@ -9,6 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="EmailTemplates\EmailNotification.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="EmailTemplates\EmailNotification.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.301" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.310.5" />
     <PackageReference Include="Hangfire" Version="1.8.14" />
@@ -24,6 +32,7 @@
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
     <PackageReference Include="Okta.AspNetCore" Version="4.6.1" />
     <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.0" />
   </ItemGroup>
 
   <ItemGroup>

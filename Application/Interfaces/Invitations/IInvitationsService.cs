@@ -9,6 +9,6 @@ namespace TMPApplication.Interfaces.Invitations
     public interface IInvitationsService
     {
         Task CreateInvitationAsync(int projectId, string email);
-        Task AcceptInvitationAsync(string token);
+        Task<bool> AcceptInvitationAsync(string token);
     }
 }

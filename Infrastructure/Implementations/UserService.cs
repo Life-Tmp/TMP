@@ -1,26 +1,21 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity.Data;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Json;
+using Newtonsoft.Json.Linq;
+using StackExchange.Redis;
+using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
 using TMP.Application.Interfaces;
+using TMPApplication.DTOs.UserDtos;
 using TMPApplication.UserTasks;
 using TMPDomain.Entities;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Http;
-using TMPApplication.DTOs.UserDtos;
-using AutoMapper;
-using Microsoft.AspNetCore.Identity.Data;
-using Newtonsoft.Json.Linq;
-using Microsoft.Extensions.Configuration;
 using TMPDomain.HelperModels;
-using Microsoft.Extensions.Logging;
-using System.Net.Http.Headers;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 
 namespace TMPInfrastructure.Implementations
 {
@@ -32,10 +27,11 @@ namespace TMPInfrastructure.Implementations
         private readonly IHttpContextAccessor _httpContextAccess;
         private readonly IConfiguration _configuration;
         private readonly ILogger<UserService> _logger;
-
+        private readonly IDatabase _cache;
         public UserService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccess,
             IMapper mapper, IConfiguration configuration,
-            ILogger<UserService> logger, IHttpClientFactory httpClientFactory)
+            ILogger<UserService> logger, IHttpClientFactory httpClientFactory,
+            IConnectionMultiplexer redis)
         {
 
             _unitOfWork = unitOfWork;
@@ -44,6 +40,7 @@ namespace TMPInfrastructure.Implementations
             _mapper = mapper;
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
+            _cache = redis.GetDatabase();
         }
 
 
@@ -93,7 +90,7 @@ namespace TMPInfrastructure.Implementations
             }
         }
 
-        public async Task<Dictionary<string, object>> RegisterWithCredentials(RegisterRequest registerRequest)
+        public async Task<Dictionary<string, object>> RegisterWithCredentials(RegisterRequest registerRequest, string firstName, string lastName)
         {
 
             var client = _httpClientFactory.CreateClient(); //TODO:  check this
@@ -102,7 +99,9 @@ namespace TMPInfrastructure.Implementations
             {
                 email = registerRequest.Email,
                 password = registerRequest.Password,
-                connection = "Username-Password-Authentication" // Ensure this matches connection name in Auth0
+                connection = "Username-Password-Authentication",
+                given_name = firstName, 
+                family_name = lastName
             };
 
             var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
@@ -164,6 +163,16 @@ namespace TMPInfrastructure.Implementations
         {
             try
             {
+                var userId = _httpContextAccess.HttpContext.User.Claims.FirstOrDefault(x=>x.Type == ClaimTypes.NameIdentifier).Value;
+                var cacheKey = $"user_profile_{userId}";
+               
+                var cachedUserProfile = await _cache.StringGetAsync(cacheKey);
+
+                if (cachedUserProfile.HasValue)
+                {
+                    return JsonConvert.DeserializeObject<UserProfileResponseDto>(cachedUserProfile);
+                }
+
                 var client = _httpClientFactory.CreateClient();
                 var request = new HttpRequestMessage(HttpMethod.Get, $"{_configuration["AuthoritySettings:UserInfoEndpoint"]}");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -175,13 +184,6 @@ namespace TMPInfrastructure.Implementations
                     var profileJson = await profileResponse.Content.ReadAsStringAsync();
                     var profileDataTest = JsonConvert.DeserializeObject<UserProfileDto>(profileJson);
 
-                    if (profileDataTest.FirstName.IsNullOrEmpty() || profileDataTest.LastName.IsNullOrEmpty()) 
-                    {
-                        profileDataTest.FirstName = profileDataTest.Nickname;
-                        profileDataTest.LastName = "";
-                    }
-                    
-
                     var userToUpdate = await _unitOfWork.Repository<User>().GetById(x => x.Id == profileDataTest.Id).FirstOrDefaultAsync();
 
                     _mapper.Map(profileDataTest, userToUpdate);
@@ -189,7 +191,12 @@ namespace TMPInfrastructure.Implementations
                     _unitOfWork.Repository<User>().Update(userToUpdate);
                     await _unitOfWork.Repository<User>().SaveChangesAsync();
 
-                    return _mapper.Map<UserProfileResponseDto>(userToUpdate);
+                    var userProfile = _mapper.Map<UserProfileResponseDto>(userToUpdate);
+
+                    await _cache.StringSetAsync(cacheKey, JsonConvert.SerializeObject(userProfile),TimeSpan.FromMinutes(60*12)); //TODO: Remove time span
+
+                    return userProfile;
+
                 }
                 else
                 {
@@ -273,7 +280,7 @@ namespace TMPInfrastructure.Implementations
 
 
                     var responseContent = await response.Content.ReadAsStringAsync();
-
+                    await _cache.KeyDeleteAsync($"user_profile_{userId}");
                     _logger.LogInformation("User profile updated successfully");
                     return new OkObjectResult(userToUpdate);
                 }
