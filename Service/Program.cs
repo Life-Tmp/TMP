@@ -30,6 +30,7 @@ using TMPInfrastructure.Implementations.Notifications;
 using TMPInfrastructure.Implementations.Reminders;
 using TMPInfrastructure.Implementations.Subtasks;
 using TMPInfrastructure.Messaging;
+
 namespace TMP.Service;
 
 class Program
@@ -77,6 +78,7 @@ class Program
             c.MapType<IFormFile>(() => new OpenApiSchema { Type = "file" });
         }
 );
+      
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowAllOrigins",
@@ -110,6 +112,8 @@ class Program
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
         builder.Services.AddSingleton<ICacheService, CacheService>();
 
+
+        
 
         builder.Services.AddAutoMapper(assemblies); //CHECK: I think this is better, just need to TEST
         var awsOptions = new AWSOptions

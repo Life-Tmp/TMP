@@ -1,4 +1,4 @@
-﻿namespace TMPApplication.DTOs.ReminderDtos
+namespace TMPApplication.DTOs.ReminderDtos
 {
     public class GetReminderDto
     {

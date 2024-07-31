@@ -74,6 +74,36 @@ namespace TMPInfrastructure.Implementations.Reminders
 
         }
 
+
+        public async Task<GetReminderDto> GetReminderAsync(int reminderId)
+        {
+
+            var reminder = await _unitOfWork.Repository<Reminder>().GetById(x => x.Id == reminderId).FirstOrDefaultAsync();
+            if(reminder == null)
+            {
+                throw new Exception("Reminder not found");  //CustomEXception
+
+            }
+            var mappedReminder = _mapper.Map<GetReminderDto>(reminder);
+            return mappedReminder;
+        }
+        public async Task<List<GetReminderDto>> GetRemindersForTask(int taskId)
+        {
+            var reminderList = await _unitOfWork.Repository<Reminder>().GetByCondition(x => x.TaskId == taskId).ToListAsync();
+            
+            if(reminderList == null)
+            {
+                throw new Exception("There is no reminders for this task");
+            }
+
+            var mappedReminders = _mapper.Map<List<GetReminderDto>>(reminderList);
+
+            return mappedReminders;
+
+        }
+
+        
+
         public async Task CreateReminderAsync(string description, DateTime reminderDate, int taskId)
         {
             if (reminderDate < DateTime.UtcNow)

@@ -196,6 +196,7 @@ namespace TMPInfrastructure.Implementations
                     await _cache.StringSetAsync(cacheKey, JsonConvert.SerializeObject(userProfile),TimeSpan.FromMinutes(60*12)); //TODO: Remove time span
 
                     return userProfile;
+
                 }
                 else
                 {
