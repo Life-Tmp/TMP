@@ -2,6 +2,7 @@
 using TMP.Application.DTOs.ProjectDtos;
 using TMP.Application.DTOs.ProjectUserDtos;
 using TMP.Application.DTOs.TeamDtos;
+using TMPApplication.DTOs.ProjectDtos;
 using TMPApplication.DTOs.UserDtos;
 using TMPDomain.Entities;
 
@@ -15,10 +16,18 @@ namespace TMP.Application.MapperProfiles
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
-                .ForMember(dest => dest.CreatedByUserId, opt => opt.MapFrom(src => src.CreatedByUserId));
+                .ForMember(dest => dest.CreatedByUserId, opt => opt.MapFrom(src => src.CreatedByUserId))
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
+                .ReverseMap();
 
             CreateMap<AddProjectDto, Project>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
+                .ReverseMap();
+
+            CreateMap<UpdateProjectDto, Project>()
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ReverseMap();
 

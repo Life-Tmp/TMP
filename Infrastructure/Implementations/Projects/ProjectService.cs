@@ -23,46 +23,28 @@ namespace TMPInfrastructure.Implementations.Projects
 
         public async Task<IEnumerable<ProjectDto>> GetAllProjectsAsync()
         {
-            var projects = await _unitOfWork.Repository<Project>().GetAll()
-                .Select(p => new ProjectDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    CreatedByUserId = p.CreatedByUserId
-                }).ToListAsync();
-
-            return projects;
+            var projects = await _unitOfWork.Repository<Project>().GetAll().ToListAsync();
+            var projectDtos = _mapper.Map<IEnumerable<ProjectDto>>(projects);
+            return projectDtos;
         }
 
         public async Task<ProjectDto> GetProjectByIdAsync(int id)
         {
-            var project = await _unitOfWork.Repository<Project>()
-                .GetById(p => p.Id == id)
-                .Select(p => new ProjectDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    CreatedByUserId = p.CreatedByUserId
-                }).FirstOrDefaultAsync();
+            var project = await _unitOfWork.Repository<Project>().GetById(p => p.Id == id).FirstOrDefaultAsync();
+            if (project == null) return null;
 
-            return project;
+            var projectDto = _mapper.Map<ProjectDto>(project);
+            return projectDto;
         }
 
         public async Task<IEnumerable<ProjectDto>> GetProjectsByUserAsync(string userId)
         {
             var projects = await _unitOfWork.Repository<Project>()
                 .GetByCondition(p => p.ProjectUsers.Any(pu => pu.UserId == userId))
-                .Select(p => new ProjectDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    CreatedByUserId = p.CreatedByUserId
-                }).ToListAsync();
+                .ToListAsync();
 
-            return projects;
+            var projectDtos = _mapper.Map<IEnumerable<ProjectDto>>(projects);
+            return projectDtos;
         }
 
         public async Task<string> GetUserRoleInProjectAsync(int projectId, string userId)
@@ -197,7 +179,7 @@ namespace TMPInfrastructure.Implementations.Projects
             return true;
         }
 
-        public async Task<bool> UpdateProjectAsync(int id, AddProjectDto updatedProject, string userId)
+        public async Task<bool> UpdateProjectAsync(int id, UpdateProjectDto updatedProject, string userId)
         {
             var project = await _unitOfWork.Repository<Project>().GetById(p => p.Id == id).FirstOrDefaultAsync();
             if (project == null) return false;
@@ -210,12 +192,12 @@ namespace TMPInfrastructure.Implementations.Projects
                 return false;
 
             _mapper.Map(updatedProject, project);
-            project.UpdatedAt = DateTime.UtcNow;
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
             return true;
         }
+
 
         public async Task<bool> UpdateUserRoleAsync(int projectId, string userId, MemberRole newRole, string currentUserId)
         {

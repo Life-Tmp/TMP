@@ -1,8 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Nest;
 using System.Security.Claims;
+using TMP.Application.DTOs.CommentDtos;
+using TMP.Application.DTOs.SubtaskDtos;
 using TMP.Application.DTOs.TaskDtos;
 using TMPApplication.Interfaces.Tasks;
+using TMPInfrastructure.Implementations.Tasks;
 
 namespace TMPService.Controllers.Tasks
 {
@@ -11,10 +15,12 @@ namespace TMPService.Controllers.Tasks
     public class TaskController : ControllerBase
     {
         private readonly ITaskService _taskService;
+        private readonly ITimeTrackingService _timeTrackingService;
 
-        public TaskController(ITaskService taskService)
+        public TaskController(ITaskService taskService, ITimeTrackingService timeTrackingService)
         {
             _taskService = taskService;
+            _timeTrackingService = timeTrackingService;
         }
 
         [HttpGet]
@@ -124,6 +130,78 @@ namespace TMPService.Controllers.Tasks
             if (!result) return BadRequest("User could not be removed from task.");
 
             return Ok("User removed from task successfully.");
+        }
+
+        [Authorize]
+        [HttpPost("{id:int}/start-timer")]
+        public async Task<IActionResult> StartTimer(int id)
+        {
+            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            await _timeTrackingService.StartTimerAsync(id, userId);
+            return Ok("Timer started.");
+        }
+
+        [Authorize]
+        [HttpPost("{id:int}/stop-timer")]
+        public async Task<IActionResult> StopTimer(int id)
+        {
+            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            await _timeTrackingService.StopTimerAsync(id, userId);
+            return Ok("Timer stopped.");
+        }
+
+        [Authorize]
+        [HttpGet("{id}/work-time")]
+        public async Task<ActionResult<WorkTimeDto>> GetTotalTimeSpent(int id)
+        {
+            var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var workTimeDto = await _timeTrackingService.GetTotalTimeSpentAsync(id, userId);
+            return Ok(workTimeDto);
+        }
+
+        [Authorize]
+        [HttpGet("{id:int}/time-spent-by-users")]
+        public async Task<ActionResult<IEnumerable<UserTimeSpentDto>>> GetTimeSpentByUsers(int id)
+        {
+            var currentUserId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null)
+                return Unauthorized();
+
+            try
+            {
+                var timeSpentByUsers = await _timeTrackingService.GetTimeSpentByUsersAsync(id, currentUserId);
+                return Ok(timeSpentByUsers);
+            }
+            catch (Exception ex)
+            {
+                return Forbid(ex.Message);
+            }
+        }
+
+        [HttpGet("{id}/comments")]
+        public async Task<ActionResult<IEnumerable<CommentDto>>> GetComments(int id)
+        {
+            var comments = await _taskService.GetCommentsByTaskIdAsync(id);
+            if (!comments.Any())
+                return NotFound("No comments found for this task.");
+
+            return Ok(comments);
+        }
+
+        [HttpGet("{id}/subtasks")]
+        public async Task<ActionResult<IEnumerable<SubtaskDto>>> GetSubtasks(int id)
+        {
+            var subtasks = await _taskService.GetSubtasksByTaskIdAsync(id);
+            if (!subtasks.Any())
+                return NotFound("No subtasks found for this task.");
+
+            return Ok(subtasks);
         }
     }
 }

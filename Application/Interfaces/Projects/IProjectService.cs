@@ -17,7 +17,7 @@ namespace TMPApplication.Interfaces.Projects
         Task<ProjectDto> AddProjectAsync(AddProjectDto newProject, string userId);
         Task<bool> AddUserToProjectAsync(AddProjectUserDto addProjectUserDto, string currentUserId);
         Task<bool> AssignTeamToProjectAsync(ManageProjectTeamDto manageProjectTeamDto);
-        Task<bool> UpdateProjectAsync(int id, AddProjectDto updatedProject, string userId);
+        Task<bool> UpdateProjectAsync(int id, UpdateProjectDto updatedProject, string userId);
         Task<bool> UpdateUserRoleAsync(int projectId, string userId, MemberRole newRole, string currentUserId);
         Task<bool> DeleteProjectAsync(int id, string userId);
         Task<bool> RemoveUserFromProjectAsync(int projectId, string userId, string currentUserId);

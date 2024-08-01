@@ -46,11 +46,11 @@ namespace TMPService.Tasks
 
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest, string firstName, string lastName)
         {
             try
             {
-                var response = await _userService.RegisterWithCredentials(registerRequest);
+                var response = await _userService.RegisterWithCredentials(registerRequest, firstName, lastName);
                 return Ok(response);
             }
             catch(Exception e)

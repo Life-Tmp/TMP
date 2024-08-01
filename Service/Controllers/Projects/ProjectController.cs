@@ -123,7 +123,7 @@ namespace TMPService.Controllers.Projects
 
         [Authorize]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProject(int id, AddProjectDto updatedProject)
+        public async Task<IActionResult> UpdateProject(int id, UpdateProjectDto updatedProject)
         {
             var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
             if (userId == null) return Unauthorized();
