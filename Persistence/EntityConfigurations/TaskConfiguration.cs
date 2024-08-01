@@ -20,19 +20,23 @@ namespace Persistence.EntityConfigurations
 
             builder.HasOne(t => t.Project)
                 .WithMany(p => p.Tasks)
-                .HasForeignKey(t => t.ProjectId);
+                .HasForeignKey(t => t.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(t => t.Comments)
                 .WithOne(c => c.Task)
-                .HasForeignKey(c => c.TaskId);
+                .HasForeignKey(c => c.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(t => t.Attachments)
                 .WithOne(a => a.Task)
-                .HasForeignKey(a => a.TaskId);
+                .HasForeignKey(a => a.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(t => t.TaskDurations)
                 .WithOne(td => td.Task)
-                .HasForeignKey(td => td.TaskId);
+                .HasForeignKey(td => td.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(t => t.AssignedUsers)
                 .WithMany(u => u.AssignedTasks)
@@ -48,11 +52,13 @@ namespace Persistence.EntityConfigurations
 
             builder.HasMany(t => t.Reminders)
                 .WithOne(u => u.Task)
-                .HasForeignKey(t => t.TaskId);
+                .HasForeignKey(t => t.TaskId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.HasMany(t => t.Subtasks)
                 .WithOne(s => s.Task)
-                .HasForeignKey(s => s.TaskId);
+                .HasForeignKey(s => s.TaskId)
+                .OnDelete(DeleteBehavior.Cascade); 
         }
     }
 }

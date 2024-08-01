@@ -3,6 +3,5 @@
     public class AddTagDto
     {
         public string Name { get; set; }
-        public string Color { get; set; }
     }
 }

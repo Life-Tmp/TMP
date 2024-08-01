@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using TMP.Application.DTOs.TagDtos;
-using TMP.Application.DTOs.TaskDtos;
 using TMP.Application.Interfaces.Tags;
 
 namespace TMP.Service.Controllers.Tags

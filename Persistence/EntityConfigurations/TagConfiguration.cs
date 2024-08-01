@@ -14,9 +14,6 @@ namespace Persistence.EntityConfigurations
                 .IsRequired()
                 .HasMaxLength(255);
 
-            builder.Property(t => t.Color)
-                .HasMaxLength(7); // For storing color codes like #FFFFFF
-
             builder.HasMany(t => t.Tasks)
                 .WithMany(t => t.Tags)
                 .UsingEntity(j => j.ToTable("TaskTags"));

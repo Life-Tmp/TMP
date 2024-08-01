@@ -9,6 +9,7 @@ namespace TMP.Application.DTOs.TaskDtos
         public TaskPriority Priority { get; set; }
         public StatusOfTask Status { get; set; }
         public DateTime DueDate { get; set; }
-        public int ProjectId { get; set; } // Add ProjectId
+        public int ProjectId { get; set; }
+        public List<string> Tags { get; set; }
     }
 }
