@@ -12,7 +12,7 @@ namespace TMPApplication.Interfaces.Tasks
         Task<IEnumerable<TaskDto>> GetTasksByUserIdAsync(string userId);
         Task<TaskDto> AddTaskAsync(AddTaskDto newTask);
         Task<bool> AssignUserToTaskAsync(AssignUserToTaskDto assignUserToTaskDto);
-        Task<bool> UpdateTaskAsync(int id, AddTaskDto updatedTask);
+        Task<bool> UpdateTaskAsync(int id, UpdateTaskDto updatedTask);
         Task<bool> UpdateStatusOfTask(UpdateTaskStatusDto updateTaskStatusDto);
         Task<bool> DeleteTaskAsync(int id);
         Task<bool> RemoveUserFromTaskAsync(RemoveUserFromTaskDto removeUserFromTaskDto);

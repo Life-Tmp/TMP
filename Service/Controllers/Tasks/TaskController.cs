@@ -87,7 +87,7 @@ namespace TMPService.Controllers.Tasks
 
         [Authorize]
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateTask(int id, [FromBody] AddTaskDto updatedTask)
+        public async Task<IActionResult> UpdateTask(int id, [FromBody] UpdateTaskDto updatedTask)
         {
             var result = await _taskService.UpdateTaskAsync(id, updatedTask);
             if (!result) return NotFound();

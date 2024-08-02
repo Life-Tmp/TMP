@@ -19,29 +19,26 @@ namespace TMP.Application.MapperProfiles
                 .ForMember(dest => dest.CreatedByUserId, opt => opt.MapFrom(src => src.CreatedByUserId))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => src.UpdatedAt))
-                .ReverseMap();
+                .ForMember(dest => dest.Columns, opt => opt.MapFrom(src => src.Columns.Select(c => c.Name).ToList()));
 
             CreateMap<AddProjectDto, Project>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-                .ReverseMap();
+                .ForMember(dest => dest.Columns, opt => opt.Ignore());
 
             CreateMap<UpdateProjectDto, Project>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
-                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
-                .ReverseMap();
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 
             CreateMap<ProjectUser, ProjectUserDto>()
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
                 .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.User.FirstName))
                 .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.User.LastName))
-                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role))
-                .ReverseMap();
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role));
 
             CreateMap<ProjectUserDto, UserProfileDto>()
                 .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.FirstName))
-                .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.LastName))
-                .ReverseMap();
+                .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.LastName));
 
             CreateMap<Project, ProjectUsersDto>()
                 .ForMember(dest => dest.ProjectId, opt => opt.MapFrom(src => src.Id))
@@ -65,6 +62,8 @@ namespace TMP.Application.MapperProfiles
                     CreatedAt = pt.Team.CreatedAt,
                     UpdatedAt = pt.Team.UpdatedAt
                 })));
+
+            CreateMap<Column, ColumnDto>().ReverseMap();
         }
     }
 }

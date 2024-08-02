@@ -15,11 +15,13 @@ namespace TMPApplication.Interfaces.Projects
         Task<ProjectTeamsDto> GetProjectTeamsAsync(int projectId);
         Task<ProjectTasksDto> GetProjectTasksAsync(int projectId);
         Task<ProjectDto> AddProjectAsync(AddProjectDto newProject, string userId);
+        Task<bool> AddColumnsToProjectAsync(ManageProjectColumnsDto addProjectColumnDto);
         Task<bool> AddUserToProjectAsync(AddProjectUserDto addProjectUserDto, string currentUserId);
         Task<bool> AssignTeamToProjectAsync(ManageProjectTeamDto manageProjectTeamDto);
         Task<bool> UpdateProjectAsync(int id, UpdateProjectDto updatedProject, string userId);
         Task<bool> UpdateUserRoleAsync(int projectId, string userId, MemberRole newRole, string currentUserId);
         Task<bool> DeleteProjectAsync(int id, string userId);
+        Task<bool> RemoveColumnsFromProjectAsync(ManageProjectColumnsDto removeProjectColumnsDto);
         Task<bool> RemoveUserFromProjectAsync(int projectId, string userId, string currentUserId);
         Task<bool> RemoveTeamFromProjectAsync(ManageProjectTeamDto manageProjectTeamDto);
     }

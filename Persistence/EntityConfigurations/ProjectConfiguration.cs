@@ -32,6 +32,10 @@ namespace Persistence.EntityConfigurations
             builder.HasMany(p => p.ProjectTeams)
                 .WithOne(pt => pt.Project)
                 .HasForeignKey(pt => pt.ProjectId);
+
+            builder.HasMany(p => p.Columns)
+                .WithMany(c => c.Projects)
+                .UsingEntity(j => j.ToTable("ProjectColumns"));
         }
     }
 }

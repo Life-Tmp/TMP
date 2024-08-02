@@ -99,6 +99,17 @@ namespace TMPService.Controllers.Projects
         }
 
         [Authorize]
+        [HttpPost("add-columns")]
+        public async Task<IActionResult> AddColumnsToProject([FromBody] ManageProjectColumnsDto addProjectColumnDto)
+        {
+            var result = await _projectService.AddColumnsToProjectAsync(addProjectColumnDto);
+            if (!result) return NotFound();
+
+            return Ok("Columns added successfully.");
+        }
+
+
+        [Authorize]
         [HttpPost("add-user")]
         public async Task<IActionResult> AddUserToProject(AddProjectUserDto addProjectUserDto)
         {
@@ -158,6 +169,16 @@ namespace TMPService.Controllers.Projects
             if (!result) return Forbid();
 
             return NoContent();
+        }
+
+        [Authorize]
+        [HttpDelete("remove-columns")]
+        public async Task<IActionResult> RemoveColumnsFromProject([FromBody] ManageProjectColumnsDto removeProjectColumnsDto)
+        {
+            var result = await _projectService.RemoveColumnsFromProjectAsync(removeProjectColumnsDto);
+            if (!result) return NotFound();
+
+            return Ok("Columns removed successfully.");
         }
 
         [Authorize]

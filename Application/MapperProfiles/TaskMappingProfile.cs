@@ -20,6 +20,10 @@ namespace TMP.Application.MapperProfiles
                 .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
                 .ReverseMap();
 
+            CreateMap<UpdateTaskDto, Task>()
+                .ForMember(dest => dest.Tags, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
             CreateMap<Subtask, SubtaskDto>().ReverseMap();
             CreateMap<AddSubtaskDto, Subtask>()
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
