@@ -203,5 +203,23 @@ namespace TMPService.Controllers.Tasks
 
             return Ok(subtasks);
         }
+
+        [HttpGet("{taskid:int}/duration")]
+        public async Task<IActionResult> GetTaskDuration(int taskid)
+        {
+            // Log the received taskId for debugging
+            Console.WriteLine($"Received taskId: {taskid}");
+
+            var duration = await _taskService.GetTaskDurationAsync(taskid);
+            if (duration == null)
+                return NotFound("Task isn't done yet or it doesn't exist"); //write a better return???
+
+            if (duration.Value.TotalSeconds == 0)
+                return NotFound("Task isn't done yet");
+
+            return Ok(duration);
+        }
+
+
     }
 }
