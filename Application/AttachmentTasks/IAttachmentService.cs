@@ -13,7 +13,7 @@ namespace TMPApplication.AttachmentTasks
     {
         Task<AddAttachmentDto> UploadAttachmentAsync(IFormFile file, int taskId);
         Task<bool> RemoveAttachmentAsync(int attachmentId);
-        Task<(byte[], string)> DownloadAttachmentAsync(int attachmentId);
+        Task<FileAttachmentDto> DownloadAttachmentAsync(int attachmentId);
         Task<List<Attachment>> GetAttachmentsAsync(int taskId);
     }
 }

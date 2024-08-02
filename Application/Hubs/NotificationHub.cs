@@ -19,29 +19,30 @@ namespace TMPApplication.Hubs
     
     public class NotificationHub : Hub
     {
-
-        private static readonly ConcurrentDictionary<string, string> _userConnections = new(); //Thread safe dictionary
-
         public override async Task OnConnectedAsync()
         {
-            var userId = Context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (!string.IsNullOrEmpty(userId))
+            var queryCollection = Context.GetHttpContext()?.Request.Query;
+            var token = queryCollection?["access_token"].FirstOrDefault();
+            if (token != null)
             {
-                
-                _userConnections[Context.ConnectionId] = userId;
-                Console.WriteLine($"User {userId} connected with connection ID {Context.ConnectionId}");
+                var handler = new JwtSecurityTokenHandler();
+                var jwtToken = handler.ReadJwtToken(token);
+
+                var userId = jwtToken?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+
+                if (!string.IsNullOrEmpty(userId))
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, userId);
+                    Console.WriteLine($"User {userId} connected with connection ID {Context.ConnectionId}");
+                }
+
             }
-            
+
             await base.OnConnectedAsync();
         }
 
-       
-
         public override Task OnDisconnectedAsync(Exception exception)
         {
-            _userConnections.TryRemove(Context.ConnectionId, out var userId);
-
             return base.OnDisconnectedAsync(exception);
         }
 

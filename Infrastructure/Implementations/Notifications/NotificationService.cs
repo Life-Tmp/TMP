@@ -14,6 +14,8 @@ using Microsoft.Extensions.Logging;
 using TMPCommon.Constants;
 using TMPApplication.DTOs.NotificationDtos;
 using AutoMapper;
+using TMPApplication.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 
 namespace TMPInfrastructure.Implementations.Notifications
@@ -24,14 +26,21 @@ namespace TMPInfrastructure.Implementations.Notifications
         private readonly IHttpContextAccessor _httpContextAccess;
         private readonly RabbitMQService _rabbitMQConfig;
         private readonly ILogger<NotificationService> _logger;
+        private readonly IHubContext<NotificationHub> _notificationHub;
         private readonly IMapper _mapper;
 
-        public NotificationService(IUnitOfWork unitOfWork, IHttpContextAccessor httpContextAccess, RabbitMQService rabbitMQConfig, ILogger<NotificationService> logger, IMapper mapper)
+        public NotificationService(IUnitOfWork unitOfWork,
+            IHttpContextAccessor httpContextAccess,
+            RabbitMQService rabbitMQConfig,
+            ILogger<NotificationService> logger,
+            IHubContext<NotificationHub> notificationHub,
+            IMapper mapper)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
             _httpContextAccess = httpContextAccess;
             _rabbitMQConfig = rabbitMQConfig;
+            _notificationHub = notificationHub;
             _mapper = mapper;
         }
 
@@ -50,6 +59,9 @@ namespace TMPInfrastructure.Implementations.Notifications
             _unitOfWork.Repository<Notification>().Create(notification);
             Console.WriteLine("Created Notification");
             _unitOfWork.Complete();
+
+            await _notificationHub.Clients.Group(userId).SendAsync("ReceiveNotifications", message);
+
             _logger.LogInformation($"Notification with ID: {notification.Id} created successfully");
             _rabbitMQConfig.PublishMessage(notification, type);
 
@@ -67,6 +79,7 @@ namespace TMPInfrastructure.Implementations.Notifications
 
             return _mapper.Map<List<NotificationDto>>(allNotifications);
         }
+
         public async Task<List<NotificationDto>> GetLatestNotifications(int numberOfLatestNotifications)
         {
             var userId = _httpContextAccess.HttpContext.User.Claims.

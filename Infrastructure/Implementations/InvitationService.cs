@@ -1,18 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Task = System.Threading.Tasks.Task;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using TMP.Application.DTOs.ProjectUserDtos;
 using TMP.Application.Interfaces;
 using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Invitations;
-using TMPDomain.Entities;
-using Microsoft.EntityFrameworkCore;
-using TMP.Application.DTOs.ProjectUserDtos;
-using TMPDomain.Enumerations;
 using TMPApplication.Interfaces.Projects;
-using AutoMapper;
+using TMPDomain.Entities;
+using Task = System.Threading.Tasks.Task;
 
 namespace TMPInfrastructure.Implementations
 {
@@ -33,6 +27,9 @@ namespace TMPInfrastructure.Implementations
 
         public async Task CreateInvitationAsync(int projectId, string email)
         {
+            if (!IsValidEmail(email))
+                throw new Exception("Email is not valid");
+
             var token = Guid.NewGuid().ToString(); // Generate a unique token
             var invitation = new Invitation
             {
@@ -40,21 +37,20 @@ namespace TMPInfrastructure.Implementations
                 Email = email,
                 Token = token,
                 CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(7), 
+                ExpiresAt = DateTime.UtcNow.AddDays(3), 
                 IsAccepted = false
             };
 
             _unitOfWork.Repository<Invitation>().Create(invitation);
             await _unitOfWork.Repository<Invitation>().SaveChangesAsync();
-            // Send the email
-            var invitationLink = $"https://localhost:7001/api/invite/accept?token={token}";
+            var invitationLink = $"url?token={token}";
             var emailBody = $"You have been invited to join a project. Click <a href='{invitationLink}'>here</a> to accept the invitation.";
             await _emailService.SendEmailInvite(email, "Project Invitation", emailBody);
         }
 
         private async Task<Invitation> GetInvitationByTokenAsync(string token)
         {
-            return _unitOfWork.Repository<Invitation>().GetByCondition(i => i.Token == token && !i.IsAccepted && i.ExpiresAt > DateTime.UtcNow).FirstOrDefault();
+            return await _unitOfWork.Repository<Invitation>().GetByCondition(i => i.Token == token && !i.IsAccepted && i.ExpiresAt > DateTime.UtcNow).FirstOrDefaultAsync();
         }
 
         public async Task<bool> AcceptInvitationAsync(string token)
@@ -74,11 +70,10 @@ namespace TMPInfrastructure.Implementations
                 UserId = userToAdd.Id,
             };
 
-            
 
-            var done = await _projectService.AddUserToProjectAsync(projectUsers, userToAdd.Id);
+            var isUserAdded = await _projectService.AddUserToProjectAsync(projectUsers, userToAdd.Id);
 
-            return done;
+            return isUserAdded;
         }
 
         private bool IsValidEmail(string email)

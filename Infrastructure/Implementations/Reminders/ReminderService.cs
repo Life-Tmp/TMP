@@ -17,6 +17,7 @@ using TMP.Application.Interfaces;
 using TMPApplication.DTOs.ReminderDtos;
 using TMPApplication.Interfaces.Reminders;
 using TMPApplication.Notifications;
+using TMPCommon.Constants;
 using TMPDomain.Entities;
 using TMPInfrastructure.Messaging;
 using Task = System.Threading.Tasks.Task;
@@ -52,7 +53,7 @@ namespace TMPInfrastructure.Implementations.Reminders
             var reminder = await _unitOfWork.Repository<Reminder>().GetById(x => x.Id == reminderId).FirstOrDefaultAsync();
             if(reminder == null)
             {
-                throw new Exception("Reminder not found");  //CustomEXception
+                throw new Exception("Reminder not found");
 
             }
             var mappedReminder = _mapper.Map<GetReminderDto>(reminder);
@@ -114,7 +115,6 @@ namespace TMPInfrastructure.Implementations.Reminders
             // Schedule the job to run at the reminder date
             var jobId = BackgroundJob.Schedule(() => ProcessReminder(reminderId), reminderDate);
 
-            // Save the job ID in the reminder entity
             var reminder = _unitOfWork.Repository<Reminder>().GetById(r => r.Id == reminderId).FirstOrDefault();
             if (reminder != null)
             {
@@ -149,17 +149,12 @@ namespace TMPInfrastructure.Implementations.Reminders
 
                 var assignedUsers = task.AssignedUsers;
                 var timeSpan = reminder.ReminderDateTime - task.DueDate ;
-                var message =  $"{timeSpan.Days} days, {timeSpan.Hours} hours, {timeSpan.Minutes} minutes";
+                var message = $"Description: {reminder.Description} \n The task is due in: {timeSpan.Days} days, {timeSpan.Hours} hours, {timeSpan.Minutes} minutes";
+                var subject = $"Reminder for Task: {reminder.Task.Title}";
 
                 foreach (var user in assignedUsers)
                 {
-                    
-                    await _notificationService.CreateNotification(
-                        user.Id, reminder.TaskId,
-                        $"Description: {reminder.Description}\n" +
-                        $" The task is due in: {message}",
-                        $"Reminder for Task: {reminder.Task.Title}", "reminder");
-
+                    await _notificationService.CreateNotification(user.Id, reminder.TaskId, message, subject, NotificationType.Reminders);
                     _logger.LogInformation($"The notification for reminder {reminder.Id} created successfully");
                 }
             }catch (Exception ex)

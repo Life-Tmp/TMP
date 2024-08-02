@@ -2,16 +2,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.Data; //TODO: get more info about this
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using RestSharp;
-using System.Security.Claims;
-using System.Text;
 using TMPApplication.DTOs.UserDtos;
 using TMPApplication.UserTasks;
 using TMPDomain.HelperModels;
-using static TMPInfrastructure.Implementations.UserService;
 
 namespace TMPService.Tasks
 {
@@ -55,7 +48,7 @@ namespace TMPService.Tasks
             }
             catch(Exception e)
             {
-                return BadRequest(new {Message =" Registration failed", Error = e.Message}); //TODO: use the catch in the service method
+                return BadRequest(new {Message =" Registration failed", Error = e.Message}); 
             }
         }
 
@@ -65,7 +58,7 @@ namespace TMPService.Tasks
         public async Task<IActionResult> GetUserProfileInfo()
         {
 
-            var accessToken = await HttpContext.GetTokenAsync("access_token"); //TODO: Check more how this works
+            var accessToken = await HttpContext.GetTokenAsync("access_token"); 
             var userProfileInfo = await _userService.GetUserProfileAsync(accessToken);
 
             if( userProfileInfo != null )
@@ -74,6 +67,8 @@ namespace TMPService.Tasks
             }
             return BadRequest();
         }
+
+
         [HttpPut("profile/update")]
         [Authorize]
         public async Task<IActionResult> UpdateUserProfile(string userId, [FromBody] UserProfileUpdateDto updateRequest)
@@ -81,8 +76,9 @@ namespace TMPService.Tasks
             return await _userService.UpdateUserProfileAsync(userId, updateRequest); //TODO: Update this
         }
 
+
         [HttpDelete("delete")]
-        [Authorize(Roles = "admin manager")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteUserAsync(string userId)
         {
             var deleteResponse = await _userService.DeleteUserAsync(userId);
@@ -91,6 +87,7 @@ namespace TMPService.Tasks
             return Ok(deleteResponse);
             return BadRequest(deleteResponse);
         }
+
 
         [HttpPatch("change-password")]
         [Authorize]

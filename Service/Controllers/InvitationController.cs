@@ -17,7 +17,7 @@ namespace TMPService.Controllers
         [HttpGet("accept")]
         public async Task<IActionResult> AcceptInvitation(string token)
         {
-            var isAccepted = _invitationsService.AcceptInvitationAsync(token);
+            var isAccepted = await _invitationsService.AcceptInvitationAsync(token);
 
             return Ok(isAccepted);
 

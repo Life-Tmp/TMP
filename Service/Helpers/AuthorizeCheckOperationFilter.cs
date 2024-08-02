@@ -50,6 +50,17 @@ namespace TMP.Service.Helpers
         {
             string Select(HttpContext context)
             {
+                //if (context.Request.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+                //{
+                //    context.Response.StatusCode = 204; 
+                //    var origin = context.Request.Headers["Origin"].FirstOrDefault();
+                //    if (origin.Equals("https://cyan-donna-95.tiiny.site"))
+                //    {
+                //        context.Response.Headers["Access-Control-Allow-Origin"] = origin;
+                //    }
+
+                //    return null; 
+                //}
                 var (scheme, credential) = GetSchemeAndCredential(context);
                 if (scheme.Equals("Bearer", StringComparison.OrdinalIgnoreCase) &&
                     !credential.Contains("."))
