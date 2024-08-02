@@ -1,11 +1,11 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 using TMP.Application.DTOs.CommentDtos;
 using TMP.Application.DTOs.SubtaskDtos;
 using TMP.Application.DTOs.TaskDtos;
 using TMP.Application.Interfaces;
+using TMPApplication.Hubs;
 using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Tasks;
 using TMPApplication.Notifications;
@@ -22,13 +22,19 @@ namespace TMPInfrastructure.Implementations.Tasks
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
+        private readonly IHubContext<NotificationHub> _notificationHub;
         private readonly ICacheService _cache;
 
-        public TaskService(IUnitOfWork unitOfWork, IMapper mapper, INotificationService notificationService, ICacheService cache)
+        public TaskService(IUnitOfWork unitOfWork,
+            IMapper mapper,
+            INotificationService notificationService,
+            IHubContext<NotificationHub> notificationHub,
+            ICacheService cache)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
+            _notificationHub = notificationHub;
             _cache = cache;
         }
 
@@ -181,7 +187,7 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             task.AssignedUsers.Add(user);
 
-            var message = "";
+            var message = $"You have been assigned the Task: {task.Title}";
             var subject = "Task Assignment";
             await _notificationService.CreateNotification(user.Id,task.Id,message,subject,NotificationType.TaskNotifications);
 
@@ -275,8 +281,18 @@ namespace TMPInfrastructure.Implementations.Tasks
                 }
             }
 
+            if (task == null) 
+                return false;
+
+            var oldStatus = task.Status.ToString();
             task.Status = updateTaskStatusDto.Status;
             _unitOfWork.Repository<Task>().Update(task);
+
+            var message = $"The status of {task.Title} has been changed from {oldStatus} to {task.Status.ToString()}";
+            foreach (var user in task.AssignedUsers)
+            {
+                await _notificationHub.Clients.Group(user.Id).SendAsync("ReceiveNotifications", message);
+            }
 
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));

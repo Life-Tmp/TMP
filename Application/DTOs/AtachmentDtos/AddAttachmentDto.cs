@@ -13,5 +13,6 @@ namespace TMPApplication.DTOs.AtachmentDtos
         public long FileSize { get; set; }
         public string FileType { get; set; }
         public int TaskId { get; set; }
+        public int AttachmentId {  get; set; }
     }
 }

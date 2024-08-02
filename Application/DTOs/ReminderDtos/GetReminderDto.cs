@@ -5,6 +5,6 @@ namespace TMPApplication.DTOs.ReminderDtos
         public string Description { get; set; }
         public DateTime ReminderDateTime { get; set; }
         public int TaskId { get; set; }
-
+        public int ReminderId { get; set; }
     }
 }
