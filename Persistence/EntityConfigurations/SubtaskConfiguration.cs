@@ -12,9 +12,6 @@ public class SubtaskConfiguration : IEntityTypeConfiguration<Subtask>
             .IsRequired()
             .HasMaxLength(255);
 
-        builder.Property(s => s.Description)
-            .HasMaxLength(1000);
-
         builder.Property(s => s.CompletedAt)
             .IsRequired(false);
 

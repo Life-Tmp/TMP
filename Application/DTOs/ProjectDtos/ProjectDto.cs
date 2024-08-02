@@ -8,5 +8,6 @@
         public string CreatedByUserId { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        public List<string> Columns { get; set; }
     }
 }

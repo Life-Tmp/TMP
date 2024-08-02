@@ -23,14 +23,20 @@ namespace TMPInfrastructure.Implementations.Projects
 
         public async Task<IEnumerable<ProjectDto>> GetAllProjectsAsync()
         {
-            var projects = await _unitOfWork.Repository<Project>().GetAll().ToListAsync();
+            var projects = await _unitOfWork.Repository<Project>()
+                                            .GetAll()
+                                            .Include(p => p.Columns)
+                                            .ToListAsync();
             var projectDtos = _mapper.Map<IEnumerable<ProjectDto>>(projects);
             return projectDtos;
         }
 
         public async Task<ProjectDto> GetProjectByIdAsync(int id)
         {
-            var project = await _unitOfWork.Repository<Project>().GetById(p => p.Id == id).FirstOrDefaultAsync();
+            var project = await _unitOfWork.Repository<Project>()
+                                           .GetById(p => p.Id == id)
+                                           .Include(p => p.Columns)
+                                           .FirstOrDefaultAsync();
             if (project == null) return null;
 
             var projectDto = _mapper.Map<ProjectDto>(project);
@@ -41,6 +47,7 @@ namespace TMPInfrastructure.Implementations.Projects
         {
             var projects = await _unitOfWork.Repository<Project>()
                 .GetByCondition(p => p.ProjectUsers.Any(pu => pu.UserId == userId))
+                .Include(p => p.Columns)
                 .ToListAsync();
 
             var projectDtos = _mapper.Map<IEnumerable<ProjectDto>>(projects);
@@ -98,6 +105,26 @@ namespace TMPInfrastructure.Implementations.Projects
             var project = _mapper.Map<Project>(newProject);
             project.CreatedByUserId = userId;
 
+            project.Columns = new List<Column>();
+
+            var defaultColumns = new List<string> { "To Do", "In Progress", "Done" };
+            foreach (var columnName in defaultColumns)
+            {
+                var existingColumn = await _unitOfWork.Repository<Column>().GetByCondition(c => c.Name == columnName).FirstOrDefaultAsync();
+                if (existingColumn != null)
+                {
+                    project.Columns.Add(existingColumn);
+                }
+                else
+                {
+                    var newColumn = new Column { Name = columnName };
+                    _unitOfWork.Repository<Column>().Create(newColumn);
+                    await _unitOfWork.Repository<Column>().SaveChangesAsync();
+
+                    project.Columns.Add(newColumn);
+                }
+            }
+
             _unitOfWork.Repository<Project>().Create(project);
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
 
@@ -112,6 +139,40 @@ namespace TMPInfrastructure.Implementations.Projects
             await _unitOfWork.Repository<ProjectUser>().SaveChangesAsync();
 
             return _mapper.Map<ProjectDto>(project);
+        }
+
+        public async Task<bool> AddColumnsToProjectAsync(ManageProjectColumnsDto addProjectColumnDto)
+        {
+            var project = await _unitOfWork.Repository<Project>()
+                                           .GetById(p => p.Id == addProjectColumnDto.ProjectId)
+                                           .Include(p => p.Columns)
+                                           .FirstOrDefaultAsync();
+            if (project == null) return false;
+
+            foreach (var columnName in addProjectColumnDto.ColumnNames)
+            {
+                var existingColumn = await _unitOfWork.Repository<Column>()
+                                                      .GetByCondition(c => c.Name == columnName)
+                                                      .FirstOrDefaultAsync();
+                if (existingColumn != null)
+                {
+                    if (!project.Columns.Any(c => c.Name == columnName))
+                    {
+                        project.Columns.Add(existingColumn);
+                    }
+                }
+                else
+                {
+                    var newColumn = new Column { Name = columnName };
+                    _unitOfWork.Repository<Column>().Create(newColumn);
+                    await _unitOfWork.Repository<Column>().SaveChangesAsync();
+                    project.Columns.Add(newColumn);
+                }
+            }
+
+            _unitOfWork.Repository<Project>().Update(project);
+            await _unitOfWork.Repository<Project>().SaveChangesAsync();
+            return true;
         }
 
         public async Task<bool> AddUserToProjectAsync(AddProjectUserDto addProjectUserDto, string currentUserId)
@@ -198,7 +259,6 @@ namespace TMPInfrastructure.Implementations.Projects
             return true;
         }
 
-
         public async Task<bool> UpdateUserRoleAsync(int projectId, string userId, MemberRole newRole, string currentUserId)
         {
             var currentUserRole = await _unitOfWork.Repository<ProjectUser>()
@@ -236,6 +296,28 @@ namespace TMPInfrastructure.Implementations.Projects
                 return false;
 
             _unitOfWork.Repository<Project>().Delete(project);
+            await _unitOfWork.Repository<Project>().SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RemoveColumnsFromProjectAsync(ManageProjectColumnsDto removeProjectColumnsDto)
+        {
+            var project = await _unitOfWork.Repository<Project>()
+                                           .GetById(p => p.Id == removeProjectColumnsDto.ProjectId)
+                                           .Include(p => p.Columns)
+                                           .FirstOrDefaultAsync();
+            if (project == null) return false;
+
+            foreach (var columnName in removeProjectColumnsDto.ColumnNames)
+            {
+                var columnToRemove = project.Columns.FirstOrDefault(c => c.Name == columnName);
+                if (columnToRemove != null)
+                {
+                    project.Columns.Remove(columnToRemove);
+                }
+            }
+
+            _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
             return true;
         }
@@ -316,6 +398,5 @@ namespace TMPInfrastructure.Implementations.Projects
 
             return true;
         }
-
     }
 }

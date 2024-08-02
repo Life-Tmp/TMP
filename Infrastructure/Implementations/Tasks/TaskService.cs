@@ -191,13 +191,43 @@ namespace TMPInfrastructure.Implementations.Tasks
             return true;
         }
 
-        public async Task<bool> UpdateTaskAsync(int id, AddTaskDto updatedTask)
+        public async Task<bool> UpdateTaskAsync(int id, UpdateTaskDto updatedTask)
         {
-            var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id).FirstOrDefaultAsync();
+            var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id)
+                        .Include(t => t.Tags)
+                        .FirstOrDefaultAsync();
             if (task == null) return false;
 
             _mapper.Map(updatedTask, task);
             task.UpdatedAt = DateTime.UtcNow;
+
+            // Handle tags
+            var existingTags = task.Tags.Select(t => t.Name).ToList();
+            var updatedTags = updatedTask.Tags ?? new List<string>();
+
+            // Remove tags that are no longer in the updated list
+            var tagsToRemove = existingTags.Except(updatedTags).ToList();
+            foreach (var tagToRemove in tagsToRemove)
+            {
+                var tagEntity = task.Tags.FirstOrDefault(t => t.Name == tagToRemove);
+                if (tagEntity != null)
+                {
+                    task.Tags.Remove(tagEntity);
+                }
+            }
+
+            // Add new tags that are not already in the existing list
+            var tagsToAdd = updatedTags.Except(existingTags).ToList();
+            foreach (var tagToAdd in tagsToAdd)
+            {
+                var tagEntity = await _unitOfWork.Repository<Tag>().GetById(t => t.Name == tagToAdd).FirstOrDefaultAsync();
+                if (tagEntity == null)
+                {
+                    tagEntity = new Tag { Name = tagToAdd };
+                    _unitOfWork.Repository<Tag>().Create(tagEntity);
+                }
+                task.Tags.Add(tagEntity);
+            }
 
             _unitOfWork.Repository<Task>().Update(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();

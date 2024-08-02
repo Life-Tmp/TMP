@@ -15,16 +15,14 @@ namespace TMP.Application.MapperProfiles
 
             CreateMap<UpdateSubtaskDto, Subtask>()
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             CreateMap<Subtask, SubtaskDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Title, opt => opt.MapFrom(src => src.Title))
-                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
                 .ForMember(dest => dest.IsCompleted, opt => opt.MapFrom(src => src.IsCompleted))
                 .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt))
-                .ForMember(dest => dest.CompletedAt, opt => opt.MapFrom(src => src.CompletedAt)); 
+                .ForMember(dest => dest.CompletedAt, opt => opt.MapFrom(src => src.CompletedAt));
         }
     }
 }
