@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 using TMP.Application.DTOs.CommentDtos;
 using TMP.Application.DTOs.SubtaskDtos;
 using TMP.Application.DTOs.TaskDtos;
@@ -9,6 +11,7 @@ using TMPApplication.Interfaces.Tasks;
 using TMPApplication.Notifications;
 using TMPCommon.Constants;
 using TMPDomain.Entities;
+using TMPDomain.Enumerations;
 using Task = TMPDomain.Entities.Task;
 
 
@@ -243,9 +246,34 @@ namespace TMPInfrastructure.Implementations.Tasks
         {
             var task = await _unitOfWork.Repository<Task>()
                 .GetById(x => x.Id == updateTaskStatusDto.TaskId)
+                .Include(t => t.TaskDurations)
                 .FirstOrDefaultAsync();
 
             if (task == null) return false;
+
+            if (updateTaskStatusDto.Status == StatusOfTask.InProgress)
+            {
+                var taskDuration = new TaskDuration
+                {
+                    TaskId = task.Id,
+                    UserId = updateTaskStatusDto.UserId,
+                    StartTime = DateTime.UtcNow
+                };
+                _unitOfWork.Repository<TaskDuration>().Create(taskDuration);
+            }
+            else if (updateTaskStatusDto.Status == StatusOfTask.Done)
+            {
+                var taskDuration = task.TaskDurations
+                    .Where(td => td.EndTime == DateTime.MinValue && td.UserId == updateTaskStatusDto.UserId)
+                    .OrderByDescending(td => td.StartTime)
+                    .FirstOrDefault();
+
+                if (taskDuration != null)
+                {
+                    taskDuration.EndTime = DateTime.UtcNow;
+                    _unitOfWork.Repository<TaskDuration>().Update(taskDuration);
+                }
+            }
 
             task.Status = updateTaskStatusDto.Status;
             _unitOfWork.Repository<Task>().Update(task);
@@ -254,8 +282,10 @@ namespace TMPInfrastructure.Implementations.Tasks
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks)); //Check -- maybe remove these one, cause it will be needed only to count the nr tasks
 
-            return _unitOfWork.Complete();
+            bool result = _unitOfWork.Complete();
+            return result;
         }
+
 
         public async Task<bool> DeleteTaskAsync(int id)
         {
@@ -330,6 +360,27 @@ namespace TMPInfrastructure.Implementations.Tasks
                 .ToListAsync();
 
             return _mapper.Map<IEnumerable<SubtaskDto>>(subtasks);
+        }
+
+        public async Task<TimeSpan?> GetTaskDurationAsync(int taskId)
+        {
+            var task = await _unitOfWork.Repository<Task>()
+                .GetById(x => x.Id == taskId)
+                .Include(t => t.TaskDurations)
+                .FirstOrDefaultAsync();
+
+            if (task == null || task.TaskDurations == null || !task.TaskDurations.Any())
+            {
+                return null;
+            }
+
+            var totalDuration = task.TaskDurations
+                .Where(td => td.EndTime != default) // Only consider durations with an end time set
+                .Sum(td => td.Duration.TotalSeconds); // Summing durations in seconds for precision
+
+            var timeSpan = TimeSpan.FromSeconds(totalDuration);
+
+            return timeSpan;
         }
 
     }
