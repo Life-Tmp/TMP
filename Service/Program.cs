@@ -29,6 +29,11 @@ using TMPInfrastructure.Implementations;
 using TMPInfrastructure.Implementations.Notifications;
 using TMPInfrastructure.Implementations.Reminders;
 using TMPInfrastructure.Implementations.Subtasks;
+using TMPApplication.Hubs;
+using TMPApplication.Interfaces.Invitations;
+using FluentValidation;
+using TMPDomain.Validations;
+using FluentValidation.AspNetCore;
 using TMPInfrastructure.Messaging;
 
 namespace TMP.Service;
@@ -50,6 +55,13 @@ class Program
 
         builder.Services.RegisterAuthentication(builder.Configuration);
 
+        // Configure FluentValidation services
+        builder.Services.AddFluentValidationAutoValidation();
+        builder.Services.AddFluentValidationClientsideAdapters();
+
+        // Register validators
+        builder.Services.AddValidatorsFromAssemblyContaining<UserValidator>();
+        builder.Services.AddEndpointsApiExplorer();
 
         builder.Services.AddControllers();
 
@@ -152,7 +164,7 @@ class Program
         builder.Services.AddScoped<IAttachmentService, AttachmentService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddTransient<INotificationService, NotificationService>();
-        builder.Services.AddScoped<IInvitationsService, InvitationService>();
+        //builder.Services.AddScoped<IInvitationsService, InvitationService>();
         builder.Services.AddTransient<IEmailService, EmailService>();
        
         builder.Services.AddScoped<ICommentService, CommentService>();
