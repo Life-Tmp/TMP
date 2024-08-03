@@ -491,12 +491,29 @@ namespace TMPInfrastructure.Implementations
             }
         }
 
+        public async Task<UserStatistics> GetUserStatistics()
+        {
+            try
+            {
+                var allUsersCount = await _unitOfWork.Repository<User>().GetAll().CountAsync();
+                var verifiedUsersCount = await _unitOfWork.Repository<User>().GetByCondition(x => x.IsEmailVerified).CountAsync();
+                var newSignUpsCount = await _unitOfWork.Repository<User>().GetByCondition(u => u.CreatedAt >= DateTime.UtcNow.AddDays(-30)).CountAsync();
 
 
+                var result = new UserStatistics
+                {
+                    AllUsers = allUsersCount,
+                    VerifiedUsers = verifiedUsersCount,
+                    NewSignsUps = newSignUpsCount
+                };
 
-        
-
-
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new ApplicationException("An error occurred while retrieving user statistics.", ex);
+            }
+        }
     }
 
 }

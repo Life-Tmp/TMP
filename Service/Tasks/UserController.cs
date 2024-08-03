@@ -111,5 +111,14 @@ namespace TMPService.Tasks
             }
         }
 
+        [HttpGet("activity")]
+        [Authorize]
+        public async Task<IActionResult> GetUsersStatistics()
+        {
+            var userStatistics = await _userService.GetUserStatistics();
+            if (userStatistics == null)
+                return NoContent();
+            return Ok(userStatistics);
+        }
     }
 }
