@@ -7,6 +7,6 @@ namespace TMP.Application.DTOs.ProjectUserDtos
         public string UserId { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public ProjectRole Role { get; set; }
+        public MemberRole Role { get; set; }
     }
 }

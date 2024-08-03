@@ -24,18 +24,21 @@ namespace TMPInfrastructure.Implementations.Tasks
         private readonly INotificationService _notificationService;
         private readonly IHubContext<NotificationHub> _notificationHub;
         private readonly ICacheService _cache;
+        private readonly ISearchService<TaskDto> _searchService;
 
         public TaskService(IUnitOfWork unitOfWork,
             IMapper mapper,
             INotificationService notificationService,
             IHubContext<NotificationHub> notificationHub,
-            ICacheService cache)
+            ICacheService cache,
+            ISearchService<TaskDto> searchService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _notificationService = notificationService;
             _notificationHub = notificationHub;
             _cache = cache;
+            _searchService = searchService;
         }
 
         public async Task<TaskDto> GetTaskByIdAsync(int id)
@@ -94,7 +97,7 @@ namespace TMPInfrastructure.Implementations.Tasks
 
         public async Task<IEnumerable<UserDetailsDto>> GetAssignedUsersAsync(int taskId)
         {
-            var cacheKey = string.Format(TasksConstants.UsersByTask,taskId);
+            var cacheKey = string.Format(TasksConstants.UsersByTask, taskId);
             var cachedUsers = await _cache.GetAsync<IEnumerable<UserDetailsDto>>(cacheKey);
             if (cachedUsers != null)
                 return cachedUsers;
@@ -107,7 +110,7 @@ namespace TMPInfrastructure.Implementations.Tasks
             if (task == null)
                 return null;
 
-            var usersDto =  task.AssignedUsers.Select(u => new UserDetailsDto
+            var usersDto = task.AssignedUsers.Select(u => new UserDetailsDto
             {
                 FirstName = u.FirstName,
                 LastName = u.LastName
@@ -129,7 +132,7 @@ namespace TMPInfrastructure.Implementations.Tasks
             var tasks = await _unitOfWork.Repository<Task>()
                 .GetByCondition(t => t.AssignedUsers.Any(u => u.Id == userId))
                 .Include(t => t.Project)
-                .Include(t => t.Tags) 
+                .Include(t => t.Tags)
                 .ToListAsync();
 
             var tasksDto = _mapper.Map<IEnumerable<TaskDto>>(tasks);
@@ -167,11 +170,14 @@ namespace TMPInfrastructure.Implementations.Tasks
             _unitOfWork.Repository<Task>().Create(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
 
+            var taskDto = _mapper.Map<TaskDto>(task);
+            await _searchService.IndexDocumentAsync(taskDto, "tasks");
+
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
 
-            return _mapper.Map<TaskDto>(task);
+            return taskDto;
         }
 
         public async Task<bool> AssignUserToTaskAsync(AssignUserToTaskDto assignUserToTaskDto)
@@ -189,14 +195,14 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             var message = $"You have been assigned the Task: {task.Title}";
             var subject = "Task Assignment";
-            await _notificationService.CreateNotification(user.Id,task.Id,message,subject,NotificationType.TaskNotifications);
+            await _notificationService.CreateNotification(user.Id, task.Id, message, subject, NotificationType.TaskNotifications);
 
             _unitOfWork.Repository<Task>().Update(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
 
-            await _cache.DeleteKeyAsync(string.Format(TasksConstants.UsersByTask,task.Id));
-            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByUser,user.Id));  
-            
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.UsersByTask, task.Id));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByUser, user.Id));
+
             return true;
         }
 
@@ -240,9 +246,10 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             _unitOfWork.Repository<Task>().Update(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
+            await _searchService.IndexDocumentAsync(_mapper.Map<TaskDto>(task), "tasks");
 
-            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById,task.Id));
-            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject,task.ProjectId));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
 
             return true;
@@ -281,7 +288,7 @@ namespace TMPInfrastructure.Implementations.Tasks
                 }
             }
 
-            if (task == null) 
+            if (task == null)
                 return false;
 
             var oldStatus = task.Status.ToString();
@@ -289,11 +296,14 @@ namespace TMPInfrastructure.Implementations.Tasks
             _unitOfWork.Repository<Task>().Update(task);
 
             var message = $"The status of {task.Title} has been changed from {oldStatus} to {task.Status.ToString()}";
-            foreach (var user in task.AssignedUsers)
-            {
-                await _notificationHub.Clients.Group(user.Id).SendAsync("ReceiveNotifications", message);
-            }
 
+            if (task.AssignedUsers != null)
+            { 
+                foreach (var user in task.AssignedUsers)
+                {
+                    await _notificationHub.Clients.Group(user.Id).SendAsync("ReceiveNotifications", message);
+                }
+            }
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks)); //Check -- maybe remove these one, cause it will be needed only to count the nr tasks
@@ -302,15 +312,18 @@ namespace TMPInfrastructure.Implementations.Tasks
             return result;
         }
 
-
         public async Task<bool> DeleteTaskAsync(int id)
         {
-            var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id).FirstOrDefaultAsync();
+            var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id)
+                                                           .Include(x => x.AssignedUsers) 
+                                                           .FirstOrDefaultAsync();
 
             if (task == null) return false;
 
             _unitOfWork.Repository<Task>().Delete(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
+
+            await _searchService.DeleteDocumentAsync(id.ToString(), "tasks");
 
             // Remove related cache entries
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
@@ -318,9 +331,12 @@ namespace TMPInfrastructure.Implementations.Tasks
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.UsersByTask, task.Id));
 
-            foreach (var user in task.AssignedUsers)
+            if (task.AssignedUsers != null)
             {
-                await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByUser, user.Id));
+                foreach (var user in task.AssignedUsers)
+                {
+                    await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByUser, user.Id));
+                }
             }
 
             return true;
@@ -398,6 +414,5 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             return timeSpan;
         }
-
     }
 }

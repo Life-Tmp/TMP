@@ -5,6 +5,7 @@ using System.Security.Claims;
 using TMP.Application.DTOs.CommentDtos;
 using TMP.Application.DTOs.SubtaskDtos;
 using TMP.Application.DTOs.TaskDtos;
+using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Tasks;
 using TMPInfrastructure.Implementations.Tasks;
 
@@ -16,11 +17,13 @@ namespace TMPService.Controllers.Tasks
     {
         private readonly ITaskService _taskService;
         private readonly ITimeTrackingService _timeTrackingService;
+        private readonly ISearchService<TaskDto> _searchService;
 
-        public TaskController(ITaskService taskService, ITimeTrackingService timeTrackingService)
+        public TaskController(ITaskService taskService, ITimeTrackingService timeTrackingService, ISearchService<TaskDto> searchService)
         {
             _taskService = taskService;
             _timeTrackingService = timeTrackingService;
+            _searchService = searchService;
         }
 
         [HttpGet]
@@ -212,7 +215,7 @@ namespace TMPService.Controllers.Tasks
 
             var duration = await _taskService.GetTaskDurationAsync(taskid);
             if (duration == null)
-                return NotFound("Task isn't done yet or it doesn't exist"); //write a better return???
+                return NotFound("Task isn't done yet or it doesn't exist");
 
             if (duration.Value.TotalSeconds == 0)
                 return NotFound("Task isn't done yet");
@@ -220,6 +223,11 @@ namespace TMPService.Controllers.Tasks
             return Ok(duration);
         }
 
-
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<TaskDto>>> SearchTasks([FromQuery] string searchTerm)
+        {
+            var tasks = await _searchService.SearchDocumentAsync(searchTerm, "tasks");
+            return Ok(tasks);
+        }
     }
 }

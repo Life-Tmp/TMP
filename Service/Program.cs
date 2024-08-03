@@ -123,9 +123,9 @@ class Program
         builder.Services.AddDbContext<DatabaseService>();
         builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
         builder.Services.AddSingleton<ICacheService, CacheService>();
+        builder.Services.AddScoped(typeof(ISearchService<>), typeof(SearchService<>));
 
 
-        
 
         builder.Services.AddAutoMapper(assemblies); //CHECK: I think this is better, just need to TEST
         var awsOptions = new AWSOptions
@@ -138,16 +138,14 @@ class Program
         };
 
         #region Elastic
-        builder.Services.AddSingleton<IElasticClient>(sp =>
-        {
-            var configuration = sp.GetRequiredService<IConfiguration>();
-            var apiKey = configuration["Elasticsearch:ApiKey"];
-            var settings = new ConnectionSettings(new Uri(configuration["Elasticsearch:Url"]))
-                .ApiKeyAuthentication(new ApiKeyAuthenticationCredentials(apiKey))
-                .DefaultIndex("tasks");
+        var settings = new ConnectionSettings(new Uri(builder.Configuration["Elasticsearch:Url"]))
+            .BasicAuthentication(builder.Configuration["Elasticsearch:Username"], builder.Configuration["Elasticsearch:Password"])
+            .DefaultIndex("users");
 
-            return new ElasticClient(settings);
-        });
+        var client = new ElasticClient(settings);
+        builder.Services.AddSingleton<IElasticClient>(client);
+
+
         #endregion
         #region Redis
 

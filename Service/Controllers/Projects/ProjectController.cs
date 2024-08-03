@@ -5,6 +5,7 @@ using TMP.Application.DTOs.ProjectDtos;
 using TMP.Application.DTOs.ProjectUserDtos;
 using TMPApplication.DTOs.ProjectDtos;
 using TMPApplication.DTOs.ProjectUserDtos;
+using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Projects;
 
 namespace TMPService.Controllers.Projects
@@ -14,10 +15,12 @@ namespace TMPService.Controllers.Projects
     public class ProjectController : ControllerBase
     {
         private readonly IProjectService _projectService;
+        private readonly ISearchService<ProjectDto> _searchService;
 
-        public ProjectController(IProjectService projectService)
+        public ProjectController(IProjectService projectService, ISearchService<ProjectDto> searchService)
         {
             _projectService = projectService;
+            _searchService = searchService;
         }
 
         [HttpGet]
@@ -202,6 +205,13 @@ namespace TMPService.Controllers.Projects
             if (!result) return BadRequest();
 
             return Ok("Team removed from project successfully.");
+        }
+
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<ProjectDto>>> SearchProjects([FromQuery] string query)
+        {
+            var projects = await _searchService.SearchDocumentAsync(query, "projects");
+            return Ok(projects);
         }
     }
 }

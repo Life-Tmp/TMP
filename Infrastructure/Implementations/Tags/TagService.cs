@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using TMP.Application.DTOs.TagDtos;
 using TMP.Application.Interfaces;
 using TMP.Application.Interfaces.Tags;
+using TMPApplication.Interfaces;
 using TMPDomain.Entities;
 
 namespace TMP.Infrastructure.Implementations.Tags
@@ -13,11 +14,13 @@ namespace TMP.Infrastructure.Implementations.Tags
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ISearchService<TagDto> _searchService;
 
-        public TagService(IUnitOfWork unitOfWork, IMapper mapper)
+        public TagService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<TagDto> searchService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _searchService = searchService;
         }
 
         public async Task<IEnumerable<TagDto>> GetAllTagsAsync()
@@ -41,7 +44,10 @@ namespace TMP.Infrastructure.Implementations.Tags
             _unitOfWork.Repository<Tag>().Create(tag);
             await _unitOfWork.Repository<Tag>().SaveChangesAsync();
 
-            return _mapper.Map<TagDto>(tag);
+            var tagDto = _mapper.Map<TagDto>(tag);
+            await _searchService.IndexDocumentAsync(tagDto, "tags");
+
+            return tagDto;
         }
 
         public async Task<bool> UpdateTagAsync(int id, AddTagDto updatedTag)
@@ -52,6 +58,7 @@ namespace TMP.Infrastructure.Implementations.Tags
             _mapper.Map(updatedTag, tag);
             _unitOfWork.Repository<Tag>().Update(tag);
             await _unitOfWork.Repository<Tag>().SaveChangesAsync();
+            await _searchService.IndexDocumentAsync(_mapper.Map<TagDto>(tag), "tags");
             return true;
         }
 
@@ -62,6 +69,9 @@ namespace TMP.Infrastructure.Implementations.Tags
 
             _unitOfWork.Repository<Tag>().Delete(tag);
             await _unitOfWork.Repository<Tag>().SaveChangesAsync();
+
+            await _searchService.DeleteDocumentAsync(id.ToString(), "tags");
+
             return true;
         }
     }

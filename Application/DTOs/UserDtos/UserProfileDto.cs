@@ -1,9 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TMPApplication.DTOs.UserDtos
 {
@@ -42,18 +37,7 @@ namespace TMPApplication.DTOs.UserDtos
         [JsonProperty("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/roles")]
         public IEnumerable<string> Roles { get; set; }
 
-        
-
-        
-
         [JsonProperty("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/mobilephone")]
         public string PhoneNumber { get; set; }
-
-        
-
-
-        
-
-
     }
 }

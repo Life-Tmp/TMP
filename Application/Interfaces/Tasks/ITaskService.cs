@@ -17,7 +17,6 @@ namespace TMPApplication.Interfaces.Tasks
         Task<bool> DeleteTaskAsync(int id);
         Task<bool> RemoveUserFromTaskAsync(RemoveUserFromTaskDto removeUserFromTaskDto);
         Task<TimeSpan?> GetTaskDurationAsync(int taskId);
-
         Task<IEnumerable<CommentDto>> GetCommentsByTaskIdAsync(int taskId);
         Task<IEnumerable<SubtaskDto>> GetSubtasksByTaskIdAsync(int taskId);
     }

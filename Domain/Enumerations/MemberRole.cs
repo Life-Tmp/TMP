@@ -2,7 +2,7 @@
 {
     public enum MemberRole
     {
-        TeamLead,
+        TeamLead = 1,
         Developer,
         Tester,
         Designer,
