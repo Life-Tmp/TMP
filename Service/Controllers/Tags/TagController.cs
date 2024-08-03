@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TMP.Application.DTOs.TagDtos;
 using TMP.Application.Interfaces.Tags;
+using TMPApplication.Interfaces;
 
 namespace TMP.Service.Controllers.Tags
 {
@@ -10,10 +11,12 @@ namespace TMP.Service.Controllers.Tags
     public class TagController : ControllerBase
     {
         private readonly ITagService _tagService;
+        private readonly ISearchService<TagDto> _searchService;
 
-        public TagController(ITagService tagService)
+        public TagController(ITagService tagService, ISearchService<TagDto> searchService)
         {
             _tagService = tagService;
+            _searchService = searchService;
         }
 
         [HttpGet]
@@ -58,6 +61,13 @@ namespace TMP.Service.Controllers.Tags
             if (!result) return NotFound();
 
             return NoContent();
+        }
+
+        [HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<TagDto>>> SearchTags([FromQuery] string searchTerm)
+        {
+            var tags = await _searchService.SearchDocumentAsync(searchTerm, "tags");
+            return Ok(tags);
         }
     }
 }

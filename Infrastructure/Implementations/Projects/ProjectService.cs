@@ -4,6 +4,7 @@ using TMP.Application.DTOs.ProjectDtos;
 using TMP.Application.DTOs.ProjectUserDtos;
 using TMP.Application.Interfaces;
 using TMPApplication.DTOs.ProjectDtos;
+using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Projects;
 using TMPDomain.Entities;
 using TMPDomain.Enumerations;
@@ -14,11 +15,13 @@ namespace TMPInfrastructure.Implementations.Projects
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ISearchService<ProjectDto> _searchService;
 
-        public ProjectService(IUnitOfWork unitOfWork, IMapper mapper)
+        public ProjectService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<ProjectDto> searchService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _searchService = searchService;
         }
 
         public async Task<IEnumerable<ProjectDto>> GetAllProjectsAsync()
@@ -138,7 +141,10 @@ namespace TMPInfrastructure.Implementations.Projects
             _unitOfWork.Repository<ProjectUser>().Create(projectUser);
             await _unitOfWork.Repository<ProjectUser>().SaveChangesAsync();
 
-            return _mapper.Map<ProjectDto>(project);
+            var projectDto = _mapper.Map<ProjectDto>(project);
+            await _searchService.IndexDocumentAsync(projectDto, "projects");
+
+            return projectDto;
         }
 
         public async Task<bool> AddColumnsToProjectAsync(ManageProjectColumnsDto addProjectColumnDto)
@@ -256,6 +262,7 @@ namespace TMPInfrastructure.Implementations.Projects
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
+            await _searchService.IndexDocumentAsync(_mapper.Map<ProjectDto>(project), "projects");
             return true;
         }
 
@@ -297,6 +304,7 @@ namespace TMPInfrastructure.Implementations.Projects
 
             _unitOfWork.Repository<Project>().Delete(project);
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
+            await _searchService.DeleteDocumentAsync(id.ToString(), "projects");
             return true;
         }
 

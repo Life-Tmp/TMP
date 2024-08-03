@@ -6,6 +6,7 @@ using TMPApplication.DTOs.ProjectDtos;
 using TMPApplication.DTOs.UserDtos;
 using TMPDomain.Entities;
 using TMPDomain.HelperModels;
+using TMPDomain.Enumerations;
 
 namespace TMP.Application.MapperProfiles
 {
@@ -45,8 +46,10 @@ namespace TMP.Application.MapperProfiles
                 .ForMember(dest => dest.ProjectId, opt => opt.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Users, opt => opt.MapFrom(src => src.ProjectUsers.Select(pu => new ProjectUserDto
                 {
+                    UserId = pu.UserId,
                     FirstName = pu.User.FirstName,
-                    LastName = pu.User.LastName
+                    LastName = pu.User.LastName,
+                    Role = pu.Role
                 })));
 
             CreateMap<Project, ProjectTasksDto>()
