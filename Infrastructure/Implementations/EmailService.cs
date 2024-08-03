@@ -29,7 +29,7 @@ namespace TMPInfrastructure.Implementations
             var client = new MailjetClient(_configuration["Mailjet:ApiKey"], _configuration["Mailjet:ApiSecret"]);
 
             string template = await GetEmailTemplateAsync(templatePath);
-            string emailBody = PopulateTemplate(emailInfo,template);
+            string emailBody = PopulateTemplate(emailInfo, template);
 
             var emailRequest = new MailjetRequest
             {
@@ -37,7 +37,7 @@ namespace TMPInfrastructure.Implementations
             }
             .Property(Send.FromEmail, _configuration["Mailjet:FromEmail"])
             .Property(Send.FromName, _configuration["Mailjet:FromName"])
-            .Property(Send.Subject, emailInfo.Subject )
+            .Property(Send.Subject, emailInfo.Subject)
             .Property(Send.HtmlPart, emailBody)
             .Property(Send.Recipients, new JArray
             {
@@ -52,12 +52,9 @@ namespace TMPInfrastructure.Implementations
         }
 
 
-        public async Task SendEmailInvite(string email, string subject, string content)
+        public async Task SendEmail(string email, string subject, string content)
         {
             var client = new MailjetClient(_configuration["Mailjet:ApiKey"], _configuration["Mailjet:ApiSecret"]);
-
-            
-            
 
             var emailRequest = new MailjetRequest
             {
@@ -75,7 +72,7 @@ namespace TMPInfrastructure.Implementations
 
             }
             });
-            Console.WriteLine($"Invitation {email}");
+            Console.WriteLine($"Email sent {email}");
             await client.PostAsync(emailRequest);
         }
 
@@ -95,7 +92,7 @@ namespace TMPInfrastructure.Implementations
                 .Replace("{{TaskTitle}}", emailInfo.TaskTitle)
                 .Replace("{{TaskDescription}}", emailInfo.TaskDescription)
                 .Replace("{{TaskDueDate}}", emailInfo.TaskDueDate.ToString());
-                
+
         }
     }
 }

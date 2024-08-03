@@ -37,7 +37,7 @@ namespace TMPInfrastructure.Implementations
                 Email = email,
                 Token = token,
                 CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddDays(3), 
+                ExpiresAt = DateTime.UtcNow.AddDays(3),
                 IsAccepted = false
             };
 
@@ -45,7 +45,7 @@ namespace TMPInfrastructure.Implementations
             await _unitOfWork.Repository<Invitation>().SaveChangesAsync();
             var invitationLink = $"url?token={token}";
             var emailBody = $"You have been invited to join a project. Click <a href='{invitationLink}'>here</a> to accept the invitation.";
-            await _emailService.SendEmailInvite(email, "Project Invitation", emailBody);
+            await _emailService.SendEmail(email, "Project Invitation", emailBody);
         }
 
         private async Task<Invitation> GetInvitationByTokenAsync(string token)
