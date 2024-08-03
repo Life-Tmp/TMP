@@ -10,6 +10,6 @@ namespace TMPApplication.Interfaces
     public interface IEmailService
     {
         Task SendEmailNotification(EmailMessage emailInfo, string template);
-        Task SendEmailInvite(string email, string subject, string content);
+        Task SendEmail(string email, string subject, string content);
     }
 }

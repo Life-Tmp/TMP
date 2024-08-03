@@ -35,6 +35,8 @@ using FluentValidation;
 using TMPDomain.Validations;
 using FluentValidation.AspNetCore;
 using TMPInfrastructure.Messaging;
+using TMPApplication.Interfaces.ContactForms;
+using TMP.Infrastructure.Implementations.ContactForms;
 
 namespace TMP.Service;
 
@@ -162,9 +164,9 @@ class Program
         builder.Services.AddScoped<IAttachmentService, AttachmentService>();
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddTransient<INotificationService, NotificationService>();
-        //builder.Services.AddScoped<IInvitationsService, InvitationService>();
+        builder.Services.AddScoped<IInvitationsService, InvitationService>();
         builder.Services.AddTransient<IEmailService, EmailService>();
-       
+        builder.Services.AddScoped<IContactFormService, ContactFormService>();
         builder.Services.AddScoped<ICommentService, CommentService>();
         builder.Services.AddScoped<ITagService, TagService>();
         builder.Services.AddScoped<ISubtaskService, SubtaskService>();
