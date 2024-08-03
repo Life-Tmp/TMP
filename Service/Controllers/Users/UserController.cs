@@ -6,20 +6,20 @@ using TMPApplication.DTOs.UserDtos;
 using TMPApplication.UserTasks;
 using TMPDomain.HelperModels;
 
-namespace TMPService.Tasks
+namespace TMPService.Controllers.Users
 {
     [ApiController]
     [Route("api/[controller]")]
-    
+
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
-       
-        
+
+
         public UserController(IUserService userService, IConfiguration configuration)
         {
             _userService = userService;
-            
+
         }
 
         [HttpPost("login")]
@@ -46,9 +46,9 @@ namespace TMPService.Tasks
                 var response = await _userService.RegisterWithCredentials(registerRequest, firstName, lastName);
                 return Ok(response);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                return BadRequest(new {Message =" Registration failed", Error = e.Message}); 
+                return BadRequest(new { Message = " Registration failed", Error = e.Message });
             }
         }
 
@@ -58,10 +58,10 @@ namespace TMPService.Tasks
         public async Task<IActionResult> GetUserProfileInfo()
         {
 
-            var accessToken = await HttpContext.GetTokenAsync("access_token"); 
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
             var userProfileInfo = await _userService.GetUserProfileAsync(accessToken);
 
-            if( userProfileInfo != null )
+            if (userProfileInfo != null)
             {
                 return Ok(userProfileInfo);
             }
@@ -83,8 +83,8 @@ namespace TMPService.Tasks
         {
             var deleteResponse = await _userService.DeleteUserAsync(userId);
 
-            if(deleteResponse.StatusCode == 200)
-            return Ok(deleteResponse);
+            if (deleteResponse.StatusCode == 200)
+                return Ok(deleteResponse);
             return BadRequest(deleteResponse);
         }
 
@@ -97,7 +97,7 @@ namespace TMPService.Tasks
             {
                 return BadRequest("Invalid input.");
             }
-            
+
 
             var response = await _userService.ChangePasswordAsync(request);
 

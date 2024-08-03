@@ -4,12 +4,12 @@ using TMPApplication.AttachmentTasks;
 using TMPApplication.DTOs.AtachmentDtos;
 using TMPDomain.Exceptions;
 
-namespace TMPService.Tasks
+namespace TMPService.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class AttachmentController: ControllerBase
+    public class AttachmentController : ControllerBase
     {
         private readonly IAttachmentService _attachmentService;
 
@@ -44,7 +44,7 @@ namespace TMPService.Tasks
 
         }
 
-    [HttpDelete("delete")]
+        [HttpDelete("delete")]
         public async Task<IActionResult> RemoveFileAttachment(int attachmentId)
         {
             try
@@ -67,8 +67,8 @@ namespace TMPService.Tasks
         public async Task<IActionResult> DownloadFileAttachment(int attachmentId)
         {
             var file = await _attachmentService.DownloadAttachmentAsync(attachmentId);
-            
-            if(file == null)
+
+            if (file == null)
             {
                 return NotFound();
             }

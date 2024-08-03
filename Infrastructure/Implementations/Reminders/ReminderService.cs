@@ -49,16 +49,15 @@ namespace TMPInfrastructure.Implementations.Reminders
 
         public async Task<GetReminderDto> GetReminderAsync(int reminderId)
         {
-
             var reminder = await _unitOfWork.Repository<Reminder>().GetById(x => x.Id == reminderId).FirstOrDefaultAsync();
-            if(reminder == null)
+            if (reminder == null)
             {
                 throw new Exception("Reminder not found");
-
             }
             var mappedReminder = _mapper.Map<GetReminderDto>(reminder);
             return mappedReminder;
         }
+
 
         public async Task<List<GetReminderDto>> GetRemindersForTask(int taskId)
         {
@@ -75,40 +74,46 @@ namespace TMPInfrastructure.Implementations.Reminders
 
         }
 
-        public async Task CreateReminderAsync(string description, DateTime reminderDate, int taskId)
+        public async Task CreateReminderAsync(CreateReminderDto createReminderDto)
         {
-            if (reminderDate < DateTime.UtcNow)
+            if (createReminderDto.ReminderDate < DateTime.UtcNow)
             {
                 _logger.LogWarning("Reminder date cannot be in the past");
                 throw new ArgumentException("Reminder date cannot be in the past");
             }
-            var createdByUserId = _httpContextAccess.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier).Value;
 
-            var task = await _unitOfWork.Repository<Taski>().GetById(x => x.Id == taskId).FirstOrDefaultAsync();
+            var createdByUserId = _httpContextAccess.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(createdByUserId))
+            {
+                _logger.LogWarning("User not authenticated");
+                throw new UnauthorizedAccessException("User not authenticated");
+            }
+
+            var task = await _unitOfWork.Repository<Taski>().GetById(x => x.Id == createReminderDto.TaskId).FirstOrDefaultAsync();
 
             if (task == null)
             {
-                _logger.LogWarning($"Task with ID {taskId} not found");
+                _logger.LogWarning($"Task with ID {createReminderDto.TaskId} not found");
                 throw new ArgumentException("Task not found");
             }
+
             var reminder = new Reminder
             {
-
-                Description = description,
-                ReminderDateTime = reminderDate,
-                TaskId = taskId,
+                Description = createReminderDto.Description,
+                ReminderDateTime = createReminderDto.ReminderDate,
+                TaskId = createReminderDto.TaskId,
                 Task = task,
                 CreatedByUserId = createdByUserId
             };
 
             _unitOfWork.Repository<Reminder>().Create(reminder);
-
             _unitOfWork.Complete();
-            _logger.LogInformation($"Reminder created successfully for Task ID {task} by userId: {createdByUserId}");
-            ScheduleReminder(reminder.Id, reminderDate);
-            
 
+            _logger.LogInformation($"Reminder created successfully for Task ID {task.Id} by userId: {createdByUserId}");
+            ScheduleReminder(reminder.Id, createReminderDto.ReminderDate);
         }
+
 
         private void ScheduleReminder(int reminderId, DateTime reminderDate)
         {

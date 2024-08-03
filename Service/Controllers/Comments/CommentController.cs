@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using TMP.Application.Comments;
 using TMP.Application.DTOs.CommentDtos;
 
-namespace TMP.Service.Comment
+namespace TMPService.Controllers.Comments
 {
     [Route("api/[controller]")]
     [ApiController]
