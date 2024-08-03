@@ -12,7 +12,7 @@ namespace TMPApplication.Interfaces.Reminders
     {
         Task<GetReminderDto> GetReminderAsync(int reminderId);
         Task<List<GetReminderDto>> GetRemindersForTask(int taskId);
-        Task CreateReminderAsync(string description, DateTime reminderDate, int taskId);
+        Task CreateReminderAsync(CreateReminderDto createReminderDto);
         Task ProcessReminder(int reminderId); //FOr testing only
         Task<bool> UpdateReminder(int reminderId, ReminderDto reminderdto);
         Task<bool> DeleteReminder(int reminderId);

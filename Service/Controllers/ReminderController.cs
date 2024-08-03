@@ -42,14 +42,19 @@ namespace TMPService.Controllers
             return Ok(reminderList);
         }
 
-        [HttpPost("add")]
+        [HttpPost]
         [Authorize]
-        public async Task<IActionResult> CreateReminder(string description, DateTime reminderDate, int taskId)
+        public async Task<IActionResult> CreateReminder([FromBody] CreateReminderDto createReminderDto)
         {
+            if (createReminderDto == null)
+            {
+                return BadRequest("Invalid reminder data.");
+            }
 
-            await _reminderService.CreateReminderAsync( description, reminderDate, taskId);
+            await _reminderService.CreateReminderAsync(createReminderDto);
             return Ok("Successfully created a reminder");
         }
+
 
         [HttpPost("process-testing")]
         public async Task<IActionResult> ProcessReminder(int reminderId)
