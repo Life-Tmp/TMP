@@ -33,13 +33,12 @@ namespace TMPInfrastructure.Messaging
                 }
             });
             
-            //TODO: Start consuming other queues as needed
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            //TODO: Implement graceful shutdown logic if necessary
+            //TODO: Implement graceful
             return Task.CompletedTask;
         }
     }

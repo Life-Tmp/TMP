@@ -1,4 +1,5 @@
-﻿using TMP.Application.DTOs.CommentDtos;
+﻿using Google.Apis.Calendar.v3.Data;
+using TMP.Application.DTOs.CommentDtos;
 using TMP.Application.DTOs.SubtaskDtos;
 using TMP.Application.DTOs.TaskDtos;
 
@@ -19,5 +20,6 @@ namespace TMPApplication.Interfaces.Tasks
         Task<TimeSpan?> GetTaskDurationAsync(int taskId);
         Task<IEnumerable<CommentDto>> GetCommentsByTaskIdAsync(int taskId);
         Task<IEnumerable<SubtaskDto>> GetSubtasksByTaskIdAsync(int taskId);
+        Task<Event> AddTaskAsEventInCalendar(int taskId);
     }
 }

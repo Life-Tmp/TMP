@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
 using TMP.Application.DTOs.CommentDtos;
@@ -7,6 +8,7 @@ using TMP.Application.DTOs.SubtaskDtos;
 using TMP.Application.DTOs.TaskDtos;
 using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Tasks;
+using TMPService.Controllers.Projects;
 using TMPService.Controllers.Tasks;
 
 namespace TMP.Service.Tests
@@ -16,6 +18,7 @@ namespace TMP.Service.Tests
         private readonly Mock<ITaskService> _taskServiceMock;
         private readonly Mock<ITimeTrackingService> _timeTrackingServiceMock;
         private readonly Mock<ISearchService<TaskDto>> _searchServiceMock;
+        private readonly Mock<ILogger<TaskController>> _logger;
         private readonly TaskController _controller;
 
         public TaskController_UnitTest()
@@ -23,10 +26,11 @@ namespace TMP.Service.Tests
             _taskServiceMock = new Mock<ITaskService>();
             _timeTrackingServiceMock = new Mock<ITimeTrackingService>();
             _searchServiceMock = new Mock<ISearchService<TaskDto>>();
+            _logger = new Mock<ILogger<TaskController>>();
             _controller = new TaskController(_taskServiceMock.Object,
                 _timeTrackingServiceMock.Object,
-                _searchServiceMock.Object
-
+                _searchServiceMock.Object,
+                _logger.Object               
                 );
             _controller.ControllerContext = new ControllerContext
             {
@@ -45,10 +49,10 @@ namespace TMP.Service.Tests
         {
             // Arrange
             var mockTasks = new List<TaskDto> { new TaskDto { Id = 1, Title = "Task 1" } };
-            _taskServiceMock.Setup(service => service.GetTasksAsync(null)).ReturnsAsync(mockTasks);
+            _taskServiceMock.Setup(service => service.GetTasksAsync()).ReturnsAsync(mockTasks);
 
             // Act
-            var result = await _controller.GetTasks(null);
+            var result = await _controller.GetTasks();
 
             // Assert
             var actionResult = Assert.IsType<ActionResult<IEnumerable<TaskDto>>>(result);
