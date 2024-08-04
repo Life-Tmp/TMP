@@ -406,5 +406,11 @@ namespace TMPInfrastructure.Implementations.Projects
 
             return true;
         }
+
+        public async Task<int> GetNumberOfCreatedProjects()
+        {
+            var numberOfProjects = await _unitOfWork.Repository<Project>().GetAll().CountAsync();
+            return numberOfProjects;
+        }
     }
 }

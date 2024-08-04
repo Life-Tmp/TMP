@@ -79,8 +79,8 @@ class Program
                 {
                     AuthorizationCode = new OpenApiOAuthFlow
                     {
-                        AuthorizationUrl = new Uri("https://dev-pt8z60gtcfp46ip0.us.auth0.com/authorize"),
-                        TokenUrl = new Uri("https://dev-pt8z60gtcfp46ip0.us.auth0.com/oauth/token"),
+                        AuthorizationUrl = new Uri(builder.Configuration["AuthoritySettings:AuthorizationEndpoint"]),
+                        TokenUrl = new Uri(builder.Configuration["AuthoritySettings:TokenEndpoint"]),
                         Scopes = new Dictionary<string, string> { { "TMP", "TMP" },
                                                                   { "admin", "admin" },
                             { "openid","openid"},{"profile","profile" },{"email","email" } }
@@ -104,7 +104,8 @@ class Program
                 }
                 );
         });
-        
+
+        builder.Services.AddAuthorization(builder => builder.AddPolicy("AdminRoleRequired", policy => policy.RequireRole("admin")));
         
         builder.Services.AddAdvancedDependencyInjection();
         var logger = new LoggerConfiguration()

@@ -213,5 +213,12 @@ namespace TMPService.Controllers.Projects
             var projects = await _searchService.SearchDocumentAsync(query, "projects");
             return Ok(projects);
         }
+
+        [HttpGet("analytics/count")]
+        public async Task<IActionResult> GetNumberOfProjects()
+        {
+            var numberOfProjects = await _projectService.GetNumberOfCreatedProjects();
+            return Ok(numberOfProjects);
+        }
     }
 }

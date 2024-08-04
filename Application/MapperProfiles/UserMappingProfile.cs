@@ -18,7 +18,9 @@ namespace TMPApplication.MapperProfiles
             CreateMap<UserProfileDto, User>().ReverseMap();
             CreateMap<UserProfileUpdateDto, User>().ReverseMap();
             CreateMap<User, UserProfileResponseDto>().ReverseMap();
+            CreateMap<User, UserInfoDto>().ReverseMap();
+            CreateMap<PagedResult<User>, PagedResult<UserInfoDto>>()
+            .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
         }
-
     }
 }

@@ -5,6 +5,9 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace TMP.Service
 {
+    /// <summary>
+    /// A filter that converts all API paths in the Swagger document to lowercase.
+    /// </summary>
     public class LowercaseDocumentFilter : IDocumentFilter
     {
         public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)

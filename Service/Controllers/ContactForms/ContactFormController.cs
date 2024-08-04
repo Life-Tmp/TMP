@@ -24,6 +24,7 @@ namespace TMP.Service.Controllers.ContactForms
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<ContactFormDto>> GetContactForm(int id)
         {
             var contactForm = await _contactFormService.GetContactFormByIdAsync(id);
@@ -32,7 +33,6 @@ namespace TMP.Service.Controllers.ContactForms
             return Ok(contactForm);
         }
 
-        [Authorize]
         [HttpPost]
         public async Task<ActionResult<ContactFormDto>> AddContactForm(AddContactFormDto newContactForm)
         {
@@ -42,6 +42,7 @@ namespace TMP.Service.Controllers.ContactForms
 
         [Authorize]
         [HttpDelete("{id}")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteContactForm(int id)
         {
             var result = await _contactFormService.DeleteContactFormAsync(id);
@@ -52,6 +53,7 @@ namespace TMP.Service.Controllers.ContactForms
 
         [Authorize]
         [HttpPost("respond")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> RespondToContactForm([FromBody] RespondToContactFormDto respondToContactFormDto)
         {
             var result = await _contactFormService.RespondToContactFormAsync(respondToContactFormDto);

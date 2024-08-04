@@ -24,5 +24,6 @@ namespace TMPApplication.Interfaces.Projects
         Task<bool> RemoveColumnsFromProjectAsync(ManageProjectColumnsDto removeProjectColumnsDto);
         Task<bool> RemoveUserFromProjectAsync(int projectId, string userId, string currentUserId);
         Task<bool> RemoveTeamFromProjectAsync(ManageProjectTeamDto manageProjectTeamDto);
+        Task<int> GetNumberOfCreatedProjects();
     }
 }

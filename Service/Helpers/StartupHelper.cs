@@ -31,7 +31,7 @@ namespace TMP.Service.Helpers
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     NameClaimType = ClaimTypes.Name, 
-                    RoleClaimType = "http://schemas.xmlsoap.org/ws/2009/09/identity/claims/roles",
+                    RoleClaimType = ClaimTypes.Role,
                     ValidIssuer = configuration["AuthoritySettings:Authority"],
                     ValidAudience = configuration["AuthoritySettings:Scope"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("4a9db740-2460-471a-b3a1-6d86bb99b279")),
@@ -64,6 +64,7 @@ namespace TMP.Service.Helpers
                         var firstName = context.HttpContext.User.FindFirst(ClaimTypes.Name)?.Value;
                         var lastName = context.HttpContext.User.FindFirst(ClaimTypes.Surname)?.Value;
                         var email = context.HttpContext.User.FindFirst(ClaimTypes.Email)?.Value;
+                        var user = context.HttpContext.User.FindFirstValue(ClaimTypes.Role);
                         var birthdate = context.HttpContext.User.FindFirst(ClaimTypes.DateOfBirth)?.Value;
                         var phoneNumber = context.HttpContext.User.FindFirst(ClaimTypes.MobilePhone)?.Value;
 
@@ -85,10 +86,6 @@ namespace TMP.Service.Helpers
                                 PasswordHash = "",
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow,
-
-                                //Gender = gender,
-                                //PhoneNumber = phoneNumber ?? " ",
-                                //DateOfBirth = DateOnly.FromDateTime(DateTime.Now)
                             };
 
                             userService.Repository<User>().Create(userToBeAdded);
@@ -117,18 +114,20 @@ namespace TMP.Service.Helpers
                             //    emailService.SendEmailAsync(userToBeAdded.EmailAddress, subject, messageBody);
                             //}
                         }
-                        else
+
+                        var roles = context.Principal.FindAll("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/roles")
+                                            .Select(roleClaim => roleClaim.Value)
+                                            .ToList();
+                        var claimsIdentity = context.Principal.Identity as ClaimsIdentity;
+                        if (roles.Any() && claimsIdentity != null)
                         {
-                            //existingUser.FirstName = firstName;
-                            //existingUser.LastName = lastName;
-                            // existingUser.PhoneNumber = phoneNumber;
-                            existingUser.UpdatedAt = DateTime.UtcNow;
-                            userService.Repository<User>().Update(existingUser);
+                            foreach (var role in roles)
+                            {
+                                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role));
+                            }
                         }
 
                         userService.Complete();
-
-
                     }
                 };
                 
