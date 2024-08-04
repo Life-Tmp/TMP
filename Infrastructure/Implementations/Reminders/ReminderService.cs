@@ -1,17 +1,12 @@
 ﻿using AutoMapper;
 using Hangfire;
-using Mailjet.Client.Resources;
-using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
-using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 using TMP.Application.Interfaces;
 using TMPApplication.DTOs.ReminderDtos;
@@ -46,36 +41,43 @@ namespace TMPInfrastructure.Implementations.Reminders
             _httpContextAccess = httpContextAccess;
         }
 
-
+        #region Read
         public async Task<GetReminderDto> GetReminderAsync(int reminderId)
         {
+            _logger.LogInformation("Fetching reminder with ID: {ReminderId}", reminderId);
+
             var reminder = await _unitOfWork.Repository<Reminder>().GetById(x => x.Id == reminderId).FirstOrDefaultAsync();
             if (reminder == null)
             {
+                _logger.LogWarning("Reminder with ID: {ReminderId} not found", reminderId);
                 throw new Exception("Reminder not found");
             }
             var mappedReminder = _mapper.Map<GetReminderDto>(reminder);
             return mappedReminder;
         }
 
-
         public async Task<List<GetReminderDto>> GetRemindersForTask(int taskId)
         {
+            _logger.LogInformation("Fetching reminders for task with ID: {TaskId}", taskId);
+
             var reminderList = await _unitOfWork.Repository<Reminder>().GetByCondition(x => x.TaskId == taskId).ToListAsync();
-            
-            if(reminderList == null)
+
+            if (reminderList == null)
             {
-                throw new Exception("There is no reminders for this task");
+                _logger.LogWarning("No reminders found for task with ID: {TaskId}", taskId);
+                throw new Exception("There are no reminders for this task");
             }
 
             var mappedReminders = _mapper.Map<List<GetReminderDto>>(reminderList);
-
             return mappedReminders;
-
         }
+        #endregion
 
+        #region Create
         public async Task CreateReminderAsync(CreateReminderDto createReminderDto)
         {
+            _logger.LogInformation("Creating reminder for task with ID: {TaskId}", createReminderDto.TaskId);
+
             if (createReminderDto.ReminderDate < DateTime.UtcNow)
             {
                 _logger.LogWarning("Reminder date cannot be in the past");
@@ -94,7 +96,7 @@ namespace TMPInfrastructure.Implementations.Reminders
 
             if (task == null)
             {
-                _logger.LogWarning($"Task with ID {createReminderDto.TaskId} not found");
+                _logger.LogWarning("Task with ID {TaskId} not found", createReminderDto.TaskId);
                 throw new ArgumentException("Task not found");
             }
 
@@ -110,13 +112,14 @@ namespace TMPInfrastructure.Implementations.Reminders
             _unitOfWork.Repository<Reminder>().Create(reminder);
             _unitOfWork.Complete();
 
-            _logger.LogInformation($"Reminder created successfully for Task ID {task.Id} by userId: {createdByUserId}");
+            _logger.LogInformation("Reminder created successfully for Task ID {TaskId} by user {UserId}", task.Id, createdByUserId);
             ScheduleReminder(reminder.Id, createReminderDto.ReminderDate);
         }
 
-
         private void ScheduleReminder(int reminderId, DateTime reminderDate)
         {
+            _logger.LogInformation("Scheduling reminder with ID: {ReminderId} for date: {ReminderDate}", reminderId, reminderDate);
+
             // Schedule the job to run at the reminder date
             var jobId = BackgroundJob.Schedule(() => ProcessReminder(reminderId), reminderDate);
 
@@ -127,50 +130,55 @@ namespace TMPInfrastructure.Implementations.Reminders
                 _unitOfWork.Repository<Reminder>().Update(reminder);
                 _unitOfWork.Complete();
             }
-            _logger.LogInformation($"Reminder with ID:{reminderId} successfully scheduled for: {reminderDate}");
-
+            _logger.LogInformation("Reminder with ID: {ReminderId} successfully scheduled for: {ReminderDate}", reminderId, reminderDate);
         }
 
         public async Task ProcessReminder(int reminderId)
         {
             try
             {
+                _logger.LogInformation("Processing reminder with ID: {ReminderId}", reminderId);
+
                 var reminder = _unitOfWork.Repository<Reminder>().GetById(x => x.Id == reminderId).FirstOrDefault();
                 if (reminder == null)
                 {
-                    _logger.LogWarning($"Reminder with ID {reminderId} not found");
-                    
+                    _logger.LogWarning("Reminder with ID {ReminderId} not found", reminderId);
+                    return;
                 }
-                var task = await _unitOfWork.Repository<Taski>().
-                    GetById(x => x.Id == reminder.TaskId).
-                    Include(x => x.AssignedUsers).
-                    FirstOrDefaultAsync();
+                var task = await _unitOfWork.Repository<Taski>()
+                    .GetById(x => x.Id == reminder.TaskId)
+                    .Include(x => x.AssignedUsers)
+                    .FirstOrDefaultAsync();
 
                 if (task == null)
                 {
-                    _logger.LogWarning($"Task with ID {reminder.TaskId} for reminder {reminderId} not found.");
+                    _logger.LogWarning("Task with ID {TaskId} for reminder {ReminderId} not found", reminder.TaskId, reminderId);
                     return;
                 }
 
                 var assignedUsers = task.AssignedUsers;
-                var timeSpan = reminder.ReminderDateTime - task.DueDate ;
+                var timeSpan = reminder.ReminderDateTime - task.DueDate;
                 var message = $"Description: {reminder.Description} \n The task is due in: {timeSpan.Days} days, {timeSpan.Hours} hours, {timeSpan.Minutes} minutes";
                 var subject = $"Reminder for Task: {reminder.Task.Title}";
 
                 foreach (var user in assignedUsers)
                 {
                     await _notificationService.CreateNotification(user.Id, reminder.TaskId, message, subject, NotificationType.Reminders);
-                    _logger.LogInformation($"The notification for reminder {reminder.Id} created successfully");
+                    _logger.LogInformation("Notification for reminder {ReminderId} created successfully", reminder.Id);
                 }
-            }catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error processing reminder with ID {reminderId}");
             }
-            
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing reminder with ID {ReminderId}", reminderId);
+            }
         }
+        #endregion
 
-        public async Task<bool> UpdateReminder(int reminderId,ReminderDto reminderDto)
+        #region Update
+        public async Task<bool> UpdateReminder(int reminderId, ReminderDto reminderDto)
         {
+            _logger.LogInformation("Updating reminder with ID: {ReminderId}", reminderId);
+
             if (reminderDto.ReminderDateTime < DateTime.UtcNow)
             {
                 _logger.LogWarning("Reminder date cannot be in the past");
@@ -183,48 +191,56 @@ namespace TMPInfrastructure.Implementations.Reminders
 
             if (reminderToUpdate == null)
             {
+                _logger.LogWarning("Reminder with ID: {ReminderId} not found", reminderId);
                 return false;
             }
 
             if (!string.IsNullOrEmpty(reminderToUpdate.JobId))
             {
                 BackgroundJob.Delete(reminderToUpdate.JobId);
+                _logger.LogInformation("Existing Hangfire job for reminder {ReminderId} deleted", reminderId);
             }
-
 
             if (reminderToUpdate.ReminderDateTime != reminderDto.ReminderDateTime)
             {
                 ScheduleReminder(reminderToUpdate.Id, reminderDto.ReminderDateTime);
-                _logger.LogInformation($"Reminder with ID: {reminderId} successfully rescheduled");
+                _logger.LogInformation("Reminder with ID: {ReminderId} successfully rescheduled", reminderId);
             }
 
             _mapper.Map(reminderDto, reminderToUpdate);
 
             _unitOfWork.Repository<Reminder>().Update(reminderToUpdate);
-            _logger.LogInformation($"Reminder with ID: {reminderId} successfully updated");
             _unitOfWork.Complete();
 
-           
+            _logger.LogInformation("Reminder with ID: {ReminderId} successfully updated", reminderId);
             return true;
         }
+        #endregion
 
+        #region Delete
         public async Task<bool> DeleteReminder(int reminderId)
         {
+            _logger.LogInformation("Deleting reminder with ID: {ReminderId}", reminderId);
+
             var reminder = await _unitOfWork.Repository<Reminder>().GetById(x => x.Id == reminderId).FirstOrDefaultAsync();
 
-            if(reminder == null)
+            if (reminder == null)
             {
+                _logger.LogWarning("Reminder with ID: {ReminderId} not found", reminderId);
                 return false;
             }
             if (!string.IsNullOrEmpty(reminder.JobId))
             {
                 BackgroundJob.Delete(reminder.JobId);
-                _logger.LogInformation($"Existing Hangfire job for reminder {reminderId} deleted.");
+                _logger.LogInformation("Existing Hangfire job for reminder {ReminderId} deleted", reminderId);
             }
 
             _unitOfWork.Repository<Reminder>().Delete(reminder);
-            _logger.LogInformation($"Reminder with ID: {reminderId} successfully deleted");
-            return _unitOfWork.Complete();
+            _unitOfWork.Complete();
+
+            _logger.LogInformation("Reminder with ID: {ReminderId} successfully deleted", reminderId);
+            return true;
         }
+        #endregion
     }
 }

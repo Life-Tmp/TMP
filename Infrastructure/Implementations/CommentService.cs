@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TMP.Application.Comments;
 using TMP.Application.DTOs.CommentDtos;
 using TMP.Application.Interfaces;
@@ -17,40 +18,59 @@ namespace TMP.Infrastructure.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IHubContext<CommentHub> _commentHubContext;
+        private readonly ILogger<CommentService> _logger;
 
-        public CommentService(IUnitOfWork unitOfWork, IMapper mapper, IHubContext<CommentHub> commentHubContext)
+        public CommentService(IUnitOfWork unitOfWork, IMapper mapper, IHubContext<CommentHub> commentHubContext, ILogger<CommentService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _commentHubContext = commentHubContext;
+            _logger = logger;
         }
 
-        public async Task<IEnumerable<CommentDto>> GetCommentsAsync(int? taskId)
+        #region Read
+        public async Task<IEnumerable<CommentDto>> GetCommentsAsync()
         {
-            IQueryable<Comment> query = _unitOfWork.Repository<Comment>().GetAll();
+            _logger.LogInformation("Fetching all comments");
 
-            if (taskId.HasValue)
-            {
-                query = query.Where(c => c.TaskId == taskId.Value);
-            }
-
-            var comments = await query.ToListAsync();
+            var comments = await _unitOfWork.Repository<Comment>().GetAll().ToListAsync();
             return _mapper.Map<IEnumerable<CommentDto>>(comments);
         }
 
         public async Task<CommentDto> GetCommentByIdAsync(int id)
         {
+            _logger.LogInformation("Fetching comment with ID: {CommentId}", id);
+
             var comment = await _unitOfWork.Repository<Comment>()
                 .GetById(c => c.Id == id)
                 .FirstOrDefaultAsync();
 
-            if (comment == null) return null;
+            if (comment == null)
+            {
+                _logger.LogWarning("Comment with ID: {CommentId} not found", id);
+                return null;
+            }
 
             return _mapper.Map<CommentDto>(comment);
         }
 
+        public async Task<IEnumerable<CommentDto>> GetCommentsByUserIdAsync(string userId)
+        {
+            _logger.LogInformation("Fetching comments for user ID: {UserId}", userId);
+
+            var comments = await _unitOfWork.Repository<Comment>()
+                .GetByCondition(c => c.UserId == userId)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<CommentDto>>(comments);
+        }
+        #endregion
+
+        #region Create
         public async Task<CommentDto> AddCommentAsync(AddCommentDto newComment, string userId)
         {
+            _logger.LogInformation("Adding new comment for user ID: {UserId}", userId);
+
             var comment = _mapper.Map<Comment>(newComment);
             comment.UserId = userId;
             comment.CreatedAt = DateTime.UtcNow;
@@ -61,38 +81,54 @@ namespace TMP.Infrastructure.Implementations
             var commentDto = _mapper.Map<CommentDto>(comment);
             await _commentHubContext.Clients.All.SendAsync("ReceiveComment", commentDto);
 
+            _logger.LogInformation("Comment with ID: {CommentId} added successfully", comment.Id);
+
             return commentDto;
         }
+        #endregion
 
+        #region Update
         public async Task<bool> UpdateCommentAsync(int id, AddCommentDto updatedComment)
         {
+            _logger.LogInformation("Updating comment with ID: {CommentId}", id);
+
             var comment = await _unitOfWork.Repository<Comment>().GetById(c => c.Id == id).FirstOrDefaultAsync();
-            if (comment == null) return false;
+            if (comment == null)
+            {
+                _logger.LogWarning("Comment with ID: {CommentId} not found for update", id);
+                return false;
+            }
 
             _mapper.Map(updatedComment, comment);
 
             _unitOfWork.Repository<Comment>().Update(comment);
             await _unitOfWork.Repository<Comment>().SaveChangesAsync();
+
+            _logger.LogInformation("Comment with ID: {CommentId} updated successfully", id);
+
             return true;
         }
+        #endregion
 
+        #region Delete
         public async Task<bool> DeleteCommentAsync(int id)
         {
+            _logger.LogInformation("Deleting comment with ID: {CommentId}", id);
+
             var comment = await _unitOfWork.Repository<Comment>().GetById(c => c.Id == id).FirstOrDefaultAsync();
-            if (comment == null) return false;
+            if (comment == null)
+            {
+                _logger.LogWarning("Comment with ID: {CommentId} not found for deletion", id);
+                return false;
+            }
 
             _unitOfWork.Repository<Comment>().Delete(comment);
             await _unitOfWork.Repository<Comment>().SaveChangesAsync();
+
+            _logger.LogInformation("Comment with ID: {CommentId} deleted successfully", id);
+
             return true;
         }
-
-        public async Task<IEnumerable<CommentDto>> GetCommentsByUserIdAsync(string userId)
-        {
-            var comments = await _unitOfWork.Repository<Comment>()
-                .GetByCondition(c => c.UserId == userId)
-                .ToListAsync();
-
-            return _mapper.Map<IEnumerable<CommentDto>>(comments);
-        }
+        #endregion
     }
 }
