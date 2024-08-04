@@ -12,6 +12,7 @@ using TMPDomain.Enumerations;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TMPInfrastructure.Implementations.CalendarApi;
 
 namespace TMPInfrastructure.Implementations.Projects
 {
@@ -21,13 +22,14 @@ namespace TMPInfrastructure.Implementations.Projects
         private readonly IMapper _mapper;
         private readonly ISearchService<ProjectDto> _searchService;
         private readonly ILogger<ProjectService> _logger;
-
-        public ProjectService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<ProjectDto> searchService, ILogger<ProjectService> logger)
+        private readonly IGoogleCalendarService _googleCalendarService;
+        public ProjectService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<ProjectDto> searchService, ILogger<ProjectService> logger, IGoogleCalendarService googleCalendarService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _searchService = searchService;
             _logger = logger;
+            _googleCalendarService = googleCalendarService;
         }
 
         #region Read
@@ -547,5 +549,27 @@ namespace TMPInfrastructure.Implementations.Projects
             return numberOfProjects;
         }
         #endregion
+        public async Task<bool> AddProjectCalendar(int projectId)
+        {
+            try
+            {
+                var project = await _unitOfWork.Repository<Project>().GetById(x => x.Id == projectId).FirstOrDefaultAsync();
+
+                if (project == null)
+                {
+                    _logger.LogWarning($"Project with ID {projectId} not found");
+                    return false;
+                }
+
+                var calendarAdded = await _googleCalendarService.CreateCalendarAsync(project.Name, project.Description);
+                _logger.LogInformation($"Calendar '{calendarAdded.Summary}' created successfully for project ID {projectId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error creating calendar for project ID {projectId}.");
+                throw new ApplicationException($"Error creating calendar for project ID {projectId}.", ex);
+            }
+        }
     }
 }

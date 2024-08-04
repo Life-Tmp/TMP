@@ -343,6 +343,19 @@ namespace TMPService.Controllers.Tasks
 
             return Ok("User removed from task successfully.");
         }
+
+        [HttpPost("add-to-calendar")]
+        public async Task<IActionResult> AddTaskToCalendar(int taskId)
+        {
+            var eventToAdd = await _taskService.AddTaskAsEventInCalendar(taskId);
+
+            if (eventToAdd == null)
+            {
+                return BadRequest();
+            }
+            return Ok(eventToAdd);
+        }
         #endregion
+
     }
 }

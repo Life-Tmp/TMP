@@ -8,7 +8,7 @@
         public string CreatedByUserId { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-
+        public string CalendarId { get; set; }
         public User CreatedByUser { get; set; }
         public ICollection<Task> Tasks { get; set; }
         public ICollection<Column> Columns { get; set; }
