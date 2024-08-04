@@ -125,8 +125,10 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             var usersDto = task.AssignedUsers.Select(u => new UserDetailsDto
             {
+                UserId = u.Id,
                 FirstName = u.FirstName,
-                LastName = u.LastName
+                LastName = u.LastName,
+                ProfilePicture = u.ProfilePicture
             }).ToList();
 
             await _cache.SetAsync(cacheKey, usersDto);
