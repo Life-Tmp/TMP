@@ -27,10 +27,9 @@ jobs:
         GOOGLE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
       run: |
         gcloud auth configure-docker europe-central2-docker.pkg.dev
-        docker pull node:18-alpine
+        docker pull mcr.microsoft.com/dotnet/aspnet:8.0
         docker build -t europe-central2-docker.pkg.dev/task-management-app-430719/docker-images/tma_back_image:$IMAGE_TAG .
         docker push europe-central2-docker.pkg.dev/task-management-app-430719/docker-images/tma_back_image:$IMAGE_TAG
-      working-directory: TMP-master
     - name: Deploy to GKE
       env:
         GOOGLE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
