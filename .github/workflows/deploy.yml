@@ -3,7 +3,7 @@ name: Deploy Nginx
 on:
   push:
     branches:
-    - 'main'
+    - 'master'
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -28,8 +28,8 @@ jobs:
       run: |
         gcloud auth configure-docker europe-central2-docker.pkg.dev
         docker pull node:18-alpine
-        docker build -t europe-central2-docker.pkg.dev/task-management-app-430719/docker-images/tma_front_image:$IMAGE_TAG .
-        docker push europe-central2-docker.pkg.dev/task-management-app-430719/docker-images/tma_front_image:$IMAGE_TAG
+        docker build -t europe-central2-docker.pkg.dev/task-management-app-430719/docker-images/tma_back_image:$IMAGE_TAG .
+        docker push europe-central2-docker.pkg.dev/task-management-app-430719/docker-images/tma_back_image:$IMAGE_TAG
       working-directory: TMP-master
     - name: Deploy to GKE
       env:
