@@ -232,7 +232,7 @@ namespace TMPInfrastructure.Implementations
                         user_metadata = new
                         {
                             phone_number = updateRequest.PhoneNumber,
-                            birthday = updateRequest.Birthday.ToString("yyyy-MM-dd") // Formated date
+                            // birthday = updateRequest.Birthday.ToString("yyyy-MM-dd") // Formated date
                         }
                     };
                 }
