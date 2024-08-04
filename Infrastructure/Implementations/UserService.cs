@@ -171,6 +171,7 @@ namespace TMPInfrastructure.Implementations
                 if (cachedUserProfile.HasValue)
                 {
                     return JsonConvert.DeserializeObject<UserProfileResponseDto>(cachedUserProfile);
+
                 }
 
                 var client = _httpClientFactory.CreateClient();
@@ -216,7 +217,7 @@ namespace TMPInfrastructure.Implementations
         {
             if (string.IsNullOrWhiteSpace(userId) || updateRequest == null)
             {
-                return new BadRequestObjectResult("Invalid input.");
+                return new BadRequestObjectResult("Invalid input");
             }
 
             try
@@ -240,13 +241,13 @@ namespace TMPInfrastructure.Implementations
                      requestBody = new
                     {
                         given_name = updateRequest.FirstName,
-                        family_name = updateRequest.LastName,                 //TODO: Check this
+                        family_name = updateRequest.LastName,                 
 
-                        picture = updateRequest.Picture,
+                        //picture = updateRequest.Picture,
                         user_metadata = new
                         {
                             phone_number = updateRequest.PhoneNumber,
-                            birthday = updateRequest.Birthday.ToString("yyyy-MM-dd") // Formated date
+                            //birthday = updateRequest.Birthday.ToString("yyyy-MM-dd") // Formated date
                         }
                     };
 
@@ -280,7 +281,7 @@ namespace TMPInfrastructure.Implementations
 
 
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    await _cache.KeyDeleteAsync($"user_profile_{userId}");
+                    var cached= await _cache.KeyDeleteAsync($"user_profile_{userId}");
                     _logger.LogInformation("User profile updated successfully");
                     return new OkObjectResult(userToUpdate);
                 }
@@ -511,8 +512,21 @@ namespace TMPInfrastructure.Implementations
             }
             catch (Exception ex)
             {
-                throw new ApplicationException("An error occurred while retrieving user statistics.", ex);
+                throw new ApplicationException("An error occurred while retrieving user statistics", ex);
             }
+        }
+
+        public async Task<PagedResult<UserInfoDto>> GetPagedAsync(int pageNumber, int pageSize)
+        {
+            var allUsers = _unitOfWork.Repository<User>().GetAll();
+            if (allUsers == null)
+                return new PagedResult<UserInfoDto>();
+
+            var userQuery = await allUsers.GetPagedAsync(pageNumber, pageSize); 
+
+            var usersDtos = _mapper.Map<PagedResult<UserInfoDto>>(userQuery);
+
+            return usersDtos;
         }
     }
 

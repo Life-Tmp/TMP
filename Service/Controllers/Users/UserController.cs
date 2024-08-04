@@ -78,7 +78,7 @@ namespace TMPService.Controllers.Users
 
 
         [HttpDelete("delete")]
-        [Authorize(Roles = "admin")]
+        [Authorize(Policy = "AdminRoleRequired")]
         public async Task<IActionResult> DeleteUserAsync(string userId)
         {
             var deleteResponse = await _userService.DeleteUserAsync(userId);
@@ -119,6 +119,19 @@ namespace TMPService.Controllers.Users
             if (userStatistics == null)
                 return NoContent();
             return Ok(userStatistics);
+        }
+
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetPagedUsers([FromQuery] int pageNumber = 1,[FromQuery] int pageSize = 10)
+        {
+            var pagedUsers = await _userService.GetPagedAsync(pageNumber, pageSize);
+
+            if(pagedUsers == null || pagedUsers.Items.Count == 0)
+            {
+                return NotFound("No users found");
+            }
+
+            return Ok(pagedUsers);
         }
     }
 }

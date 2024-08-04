@@ -21,6 +21,7 @@ namespace TMPApplication.UserTasks
         Task<ApiResponse> DeleteUserAsync(string userId);
         Task<ApiResponse> ChangePasswordAsync(ChangePasswordRequest request);
         Task<UserStatistics> GetUserStatistics();
+        Task<PagedResult<UserInfoDto>> GetPagedAsync(int pageNumber, int pageSize);
 
     }
 }
