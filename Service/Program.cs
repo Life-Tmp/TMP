@@ -37,6 +37,7 @@ using FluentValidation.AspNetCore;
 using TMPInfrastructure.Messaging;
 using TMPApplication.Interfaces.ContactForms;
 using TMP.Infrastructure.Implementations.ContactForms;
+using Serilog.Sinks.Elasticsearch;
 
 namespace TMP.Service;
 
@@ -92,7 +93,7 @@ class Program
             c.MapType<IFormFile>(() => new OpenApiSchema { Type = "file" });
         }
 );
-      
+
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowAllOrigins",
@@ -105,16 +106,27 @@ class Program
                 );
         });
 
-        builder.Services.AddAuthorization(builder => builder.AddPolicy("AdminRoleRequired", policy => policy.RequireRole("admin")));
-        
+
         builder.Services.AddAdvancedDependencyInjection();
-        var logger = new LoggerConfiguration()
+
+        Log.Logger = new LoggerConfiguration()
             .ReadFrom.Configuration(builder.Configuration)
-        .Enrich.FromLogContext()
-        .CreateLogger();
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri(builder.Configuration["Elasticsearch:Url"]))
+            {
+                AutoRegisterTemplate = true,
+                IndexFormat = $"logstash-{DateTime.UtcNow:yyyy.MM.dd}",
+                ModifyConnectionSettings = x => x.BasicAuthentication(builder.Configuration["Elasticsearch:Username"], builder.Configuration["Elasticsearch:Password"])
+            })
+            .WriteTo.MSSqlServer(
+                connectionString: builder.Configuration["ConnectionStrings:DefaultConnection"],
+                sinkOptions: new Serilog.Sinks.MSSqlServer.MSSqlServerSinkOptions { TableName = "Logs", AutoCreateSqlTable = true })
+            .CreateLogger();
 
         builder.Logging.ClearProviders();
-        builder.Logging.AddSerilog(logger);
+        builder.Logging.AddSerilog(Log.Logger);
+
         builder.Services.Scan(p => p.FromAssemblies(assemblies)
             .AddClasses()
             .AsMatchingInterface());
@@ -214,7 +226,7 @@ class Program
                 c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
             });
         }
-       
+
         app.UseHttpsRedirection();
         app.UseRouting();
         app.UseHangfireDashboard();
@@ -228,7 +240,7 @@ class Program
             endpoints.MapHub<NotificationHub>("/notificationHub");
             endpoints.MapHangfireDashboard();
         });
-        
+
 
         app.MapControllers();
 

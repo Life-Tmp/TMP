@@ -28,7 +28,8 @@ namespace TMP.Application.MapperProfiles
                     Id = pt.Project.Id,
                     Name = pt.Project.Name,
                     Description = pt.Project.Description,
-                    CreatedByUserId = pt.Project.CreatedByUserId
+                    CreatedByUserId = pt.Project.CreatedByUserId,
+                    Columns = pt.Project.Columns.Select(c => c.Name).ToList()
                 })));
         }
     }

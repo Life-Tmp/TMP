@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TMP.Application.DTOs.CommentDtos;
 using TMP.Application.DTOs.SubtaskDtos;
 using TMP.Application.DTOs.TaskDtos;
@@ -14,7 +15,6 @@ using TMPDomain.Entities;
 using TMPDomain.Enumerations;
 using Task = TMPDomain.Entities.Task;
 
-
 namespace TMPInfrastructure.Implementations.Tasks
 {
     public class TaskService : ITaskService
@@ -25,13 +25,15 @@ namespace TMPInfrastructure.Implementations.Tasks
         private readonly IHubContext<NotificationHub> _notificationHub;
         private readonly ICacheService _cache;
         private readonly ISearchService<TaskDto> _searchService;
+        private readonly ILogger<TaskService> _logger;
 
         public TaskService(IUnitOfWork unitOfWork,
             IMapper mapper,
             INotificationService notificationService,
             IHubContext<NotificationHub> notificationHub,
             ICacheService cache,
-            ISearchService<TaskDto> searchService)
+            ISearchService<TaskDto> searchService,
+            ILogger<TaskService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -39,68 +41,76 @@ namespace TMPInfrastructure.Implementations.Tasks
             _notificationHub = notificationHub;
             _cache = cache;
             _searchService = searchService;
+            _logger = logger;
         }
 
+        #region Read
         public async Task<TaskDto> GetTaskByIdAsync(int id)
         {
+            _logger.LogInformation("Fetching task with ID: {TaskId}", id);
+
             var cacheKey = string.Format(TasksConstants.TaskById, id);
             var cachedTask = await _cache.GetAsync<TaskDto>(cacheKey);
 
             if (cachedTask != null)
+            {
+                _logger.LogInformation("Task with ID: {TaskId} found in cache", id);
                 return cachedTask;
+            }
 
             var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id)
                 .Include(t => t.Project)
                 .Include(t => t.Tags)
                 .FirstOrDefaultAsync();
 
-            if (task == null) return null;
+            if (task == null)
+            {
+                _logger.LogWarning("Task with ID: {TaskId} not found", id);
+                return null;
+            }
 
             var taskDto = _mapper.Map<TaskDto>(task);
             await _cache.SetAsync(cacheKey, taskDto);
 
+            _logger.LogInformation("Task with ID: {TaskId} fetched successfully", id);
             return taskDto;
         }
 
-        public async Task<IEnumerable<TaskDto>> GetTasksAsync(int? projectId = null)
+        public async Task<IEnumerable<TaskDto>> GetTasksAsync()
         {
-            string cacheKey;
-            IEnumerable<TaskDto> cachedTasks;
-            IQueryable<Task> query = _unitOfWork.Repository<Task>().GetAll();
+            _logger.LogInformation("Fetching tasks");
 
-            if (projectId.HasValue)
+            var cacheKey = TasksConstants.AllTasks;
+            var cachedTasks = await _cache.GetAsync<IEnumerable<TaskDto>>(cacheKey);
+            if (cachedTasks != null)
             {
-                cacheKey = string.Format(TasksConstants.TasksByProject, projectId);
-                cachedTasks = await _cache.GetAsync<IEnumerable<TaskDto>>(cacheKey);
-                if (cachedTasks != null)
-                    return cachedTasks;
-
-                query = query.Where(t => t.ProjectId == projectId.Value);
-            }
-            else
-            {
-                cacheKey = TasksConstants.AllTasks;
-                cachedTasks = await _cache.GetAsync<IEnumerable<TaskDto>>(cacheKey);
-                if (cachedTasks != null)
-                    return cachedTasks;
+                _logger.LogInformation("All tasks found in cache");
+                return cachedTasks;
             }
 
-            var tasks = await query.Include(t => t.Project)
+            var tasks = await _unitOfWork.Repository<Task>().GetAll()
+                                    .Include(t => t.Project)
                                     .Include(t => t.Tags)
                                     .ToListAsync();
             var taskDtos = _mapper.Map<IEnumerable<TaskDto>>(tasks);
 
             await _cache.SetAsync(cacheKey, taskDtos, TimeSpan.FromMinutes(60));
 
+            _logger.LogInformation("Tasks fetched successfully");
             return taskDtos;
         }
 
         public async Task<IEnumerable<UserDetailsDto>> GetAssignedUsersAsync(int taskId)
         {
+            _logger.LogInformation("Fetching assigned users for task with ID: {TaskId}", taskId);
+
             var cacheKey = string.Format(TasksConstants.UsersByTask, taskId);
             var cachedUsers = await _cache.GetAsync<IEnumerable<UserDetailsDto>>(cacheKey);
             if (cachedUsers != null)
+            {
+                _logger.LogInformation("Assigned users for task with ID: {TaskId} found in cache", taskId);
                 return cachedUsers;
+            }
 
             var task = await _unitOfWork.Repository<Task>()
                 .GetById(t => t.Id == taskId)
@@ -108,7 +118,10 @@ namespace TMPInfrastructure.Implementations.Tasks
                 .FirstOrDefaultAsync();
 
             if (task == null)
+            {
+                _logger.LogWarning("Task with ID: {TaskId} not found", taskId);
                 return null;
+            }
 
             var usersDto = task.AssignedUsers.Select(u => new UserDetailsDto
             {
@@ -118,16 +131,22 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             await _cache.SetAsync(cacheKey, usersDto);
 
+            _logger.LogInformation("Assigned users for task with ID: {TaskId} fetched successfully", taskId);
             return usersDto;
         }
 
         public async Task<IEnumerable<TaskDto>> GetTasksByUserIdAsync(string userId)
         {
+            _logger.LogInformation("Fetching tasks for user with ID: {UserId}", userId);
+
             var cacheKey = string.Format(TasksConstants.TasksByUser, userId);
             var cachedTasks = await _cache.GetAsync<IEnumerable<TaskDto>>(cacheKey);
 
             if (cachedTasks != null)
+            {
+                _logger.LogInformation("Tasks for user with ID: {UserId} found in cache", userId);
                 return cachedTasks;
+            }
 
             var tasks = await _unitOfWork.Repository<Task>()
                 .GetByCondition(t => t.AssignedUsers.Any(u => u.Id == userId))
@@ -138,11 +157,63 @@ namespace TMPInfrastructure.Implementations.Tasks
             var tasksDto = _mapper.Map<IEnumerable<TaskDto>>(tasks);
             await _cache.SetAsync(cacheKey, tasksDto);
 
+            _logger.LogInformation("Tasks for user with ID: {UserId} fetched successfully", userId);
             return tasksDto;
         }
 
+        public async Task<IEnumerable<CommentDto>> GetCommentsByTaskIdAsync(int taskId)
+        {
+            _logger.LogInformation("Fetching comments for task with ID: {TaskId}", taskId);
+
+            var comments = await _unitOfWork.Repository<Comment>()
+                .GetByCondition(c => c.TaskId == taskId)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<CommentDto>>(comments);
+        }
+
+        public async Task<IEnumerable<SubtaskDto>> GetSubtasksByTaskIdAsync(int taskId)
+        {
+            _logger.LogInformation("Fetching subtasks for task with ID: {TaskId}", taskId);
+
+            var subtasks = await _unitOfWork.Repository<Subtask>()
+                .GetByCondition(st => st.TaskId == taskId)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<SubtaskDto>>(subtasks);
+        }
+
+        public async Task<TimeSpan?> GetTaskDurationAsync(int taskId)
+        {
+            _logger.LogInformation("Fetching task duration for task with ID: {TaskId}", taskId);
+
+            var task = await _unitOfWork.Repository<Task>()
+                .GetById(x => x.Id == taskId)
+                .Include(t => t.TaskDurations)
+                .FirstOrDefaultAsync();
+
+            if (task == null || task.TaskDurations == null || !task.TaskDurations.Any())
+            {
+                _logger.LogWarning("Task with ID: {TaskId} not found or has no task durations", taskId);
+                return null;
+            }
+
+            var totalDuration = task.TaskDurations
+                .Where(td => td.EndTime != default) // Only consider durations with an end time set
+                .Sum(td => td.Duration.TotalSeconds); // Summing durations in seconds for precision
+
+            var timeSpan = TimeSpan.FromSeconds(totalDuration);
+
+            _logger.LogInformation("Task duration for task with ID: {TaskId} fetched successfully", taskId);
+            return timeSpan;
+        }
+        #endregion
+
+        #region Create
         public async Task<TaskDto> AddTaskAsync(AddTaskDto newTask)
         {
+            _logger.LogInformation("Adding new task");
+
             var task = _mapper.Map<Task>(newTask);
             task.ProjectId = newTask.ProjectId;
 
@@ -174,22 +245,32 @@ namespace TMPInfrastructure.Implementations.Tasks
             await _searchService.IndexDocumentAsync(taskDto, "tasks");
 
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
-            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
 
+            _logger.LogInformation("Task added successfully with ID: {TaskId}", task.Id);
             return taskDto;
         }
 
         public async Task<bool> AssignUserToTaskAsync(AssignUserToTaskDto assignUserToTaskDto)
         {
+            _logger.LogInformation("Assigning user with ID: {UserId} to task with ID: {TaskId}", assignUserToTaskDto.UserId, assignUserToTaskDto.TaskId);
+
             var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == assignUserToTaskDto.TaskId)
                 .Include(t => t.AssignedUsers)
                 .FirstOrDefaultAsync();
 
-            if (task == null) return false;
+            if (task == null)
+            {
+                _logger.LogWarning("Task with ID: {TaskId} not found", assignUserToTaskDto.TaskId);
+                return false;
+            }
 
             var user = await _unitOfWork.Repository<User>().GetById(u => u.Id == assignUserToTaskDto.UserId).FirstOrDefaultAsync();
-            if (user == null) return false;
+            if (user == null)
+            {
+                _logger.LogWarning("User with ID: {UserId} not found", assignUserToTaskDto.UserId);
+                return false;
+            }
 
             task.AssignedUsers.Add(user);
 
@@ -203,15 +284,24 @@ namespace TMPInfrastructure.Implementations.Tasks
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.UsersByTask, task.Id));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByUser, user.Id));
 
+            _logger.LogInformation("User with ID: {UserId} assigned to task with ID: {TaskId} successfully", assignUserToTaskDto.UserId, assignUserToTaskDto.TaskId);
             return true;
         }
+        #endregion
 
+        #region Update
         public async Task<bool> UpdateTaskAsync(int id, UpdateTaskDto updatedTask)
         {
+            _logger.LogInformation("Updating task with ID: {TaskId}", id);
+
             var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id)
                         .Include(t => t.Tags)
                         .FirstOrDefaultAsync();
-            if (task == null) return false;
+            if (task == null)
+            {
+                _logger.LogWarning("Task with ID: {TaskId} not found", id);
+                return false;
+            }
 
             _mapper.Map(updatedTask, task);
             task.UpdatedAt = DateTime.UtcNow;
@@ -249,20 +339,26 @@ namespace TMPInfrastructure.Implementations.Tasks
             await _searchService.IndexDocumentAsync(_mapper.Map<TaskDto>(task), "tasks");
 
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
-            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
 
+            _logger.LogInformation("Task with ID: {TaskId} updated successfully", id);
             return true;
         }
 
         public async Task<bool> UpdateStatusOfTask(UpdateTaskStatusDto updateTaskStatusDto)
         {
+            _logger.LogInformation("Updating status of task with ID: {TaskId} to {Status}", updateTaskStatusDto.TaskId, updateTaskStatusDto.Status);
+
             var task = await _unitOfWork.Repository<Task>()
                 .GetById(x => x.Id == updateTaskStatusDto.TaskId)
                 .Include(t => t.TaskDurations)
                 .FirstOrDefaultAsync();
 
-            if (task == null) return false;
+            if (task == null)
+            {
+                _logger.LogWarning("Task with ID: {TaskId} not found", updateTaskStatusDto.TaskId);
+                return false;
+            }
 
             if (updateTaskStatusDto.Status == StatusOfTask.InProgress)
             {
@@ -288,9 +384,6 @@ namespace TMPInfrastructure.Implementations.Tasks
                 }
             }
 
-            if (task == null)
-                return false;
-
             var oldStatus = task.Status.ToString();
             task.Status = updateTaskStatusDto.Status;
             _unitOfWork.Repository<Task>().Update(task);
@@ -298,27 +391,35 @@ namespace TMPInfrastructure.Implementations.Tasks
             var message = $"The status of {task.Title} has been changed from {oldStatus} to {task.Status.ToString()}";
 
             if (task.AssignedUsers != null)
-            { 
+            {
                 foreach (var user in task.AssignedUsers)
                 {
                     await _notificationHub.Clients.Group(user.Id).SendAsync("ReceiveNotifications", message);
                 }
             }
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
-            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
-            await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks)); //Check -- maybe remove these one, cause it will be needed only to count the nr tasks
+            await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
 
             bool result = _unitOfWork.Complete();
+            _logger.LogInformation("Status of task with ID: {TaskId} updated to {Status} successfully", updateTaskStatusDto.TaskId, updateTaskStatusDto.Status);
             return result;
         }
+        #endregion
 
+        #region Delete
         public async Task<bool> DeleteTaskAsync(int id)
         {
+            _logger.LogInformation("Deleting task with ID: {TaskId}", id);
+
             var task = await _unitOfWork.Repository<Task>().GetById(t => t.Id == id)
-                                                           .Include(x => x.AssignedUsers) 
+                                                           .Include(x => x.AssignedUsers)
                                                            .FirstOrDefaultAsync();
 
-            if (task == null) return false;
+            if (task == null)
+            {
+                _logger.LogWarning("Task with ID: {TaskId} not found", id);
+                return false;
+            }
 
             _unitOfWork.Repository<Task>().Delete(task);
             await _unitOfWork.Repository<Task>().SaveChangesAsync();
@@ -327,7 +428,6 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             // Remove related cache entries
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
-            await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByProject, task.ProjectId));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.UsersByTask, task.Id));
 
@@ -339,27 +439,38 @@ namespace TMPInfrastructure.Implementations.Tasks
                 }
             }
 
+            _logger.LogInformation("Task with ID: {TaskId} deleted successfully", id);
             return true;
         }
 
         public async Task<bool> RemoveUserFromTaskAsync(RemoveUserFromTaskDto removeUserFromTaskDto)
         {
+            _logger.LogInformation("Removing user with ID: {UserId} from task with ID: {TaskId}", removeUserFromTaskDto.UserId, removeUserFromTaskDto.TaskId);
+
             var task = await _unitOfWork.Repository<Task>()
                 .GetById(t => t.Id == removeUserFromTaskDto.TaskId)
                 .Include(t => t.AssignedUsers)
                 .FirstOrDefaultAsync();
 
-            if (task == null) return false;
+            if (task == null)
+            {
+                _logger.LogWarning("Task with ID: {TaskId} not found", removeUserFromTaskDto.TaskId);
+                return false;
+            }
 
             var user = await _unitOfWork.Repository<User>()
                 .GetById(u => u.Id == removeUserFromTaskDto.UserId)
                 .FirstOrDefaultAsync();
 
-            if (user == null) return false;
-
+            if (user == null)
+            {
+                _logger.LogWarning("User with ID: {UserId} not found", removeUserFromTaskDto.UserId);
+                return false;
+            }
 
             if (!task.AssignedUsers.Any(u => u.Id == user.Id))
             {
+                _logger.LogWarning("User with ID: {UserId} is not assigned to task with ID: {TaskId}", user.Id, task.Id);
                 return false;
             }
 
@@ -374,46 +485,9 @@ namespace TMPInfrastructure.Implementations.Tasks
                 await _cache.DeleteKeyAsync(string.Format(TasksConstants.TasksByUser, theUser.Id));
             }
 
+            _logger.LogInformation("User with ID: {UserId} removed from task with ID: {TaskId} successfully", user.Id, task.Id);
             return result;
         }
-
-        public async Task<IEnumerable<CommentDto>> GetCommentsByTaskIdAsync(int taskId)
-        {
-            var comments = await _unitOfWork.Repository<Comment>()
-                .GetByCondition(c => c.TaskId == taskId)
-                .ToListAsync();
-
-            return _mapper.Map<IEnumerable<CommentDto>>(comments);
-        }
-
-        public async Task<IEnumerable<SubtaskDto>> GetSubtasksByTaskIdAsync(int taskId)
-        {
-            var subtasks = await _unitOfWork.Repository<Subtask>()
-                .GetByCondition(st => st.TaskId == taskId)
-                .ToListAsync();
-
-            return _mapper.Map<IEnumerable<SubtaskDto>>(subtasks);
-        }
-
-        public async Task<TimeSpan?> GetTaskDurationAsync(int taskId)
-        {
-            var task = await _unitOfWork.Repository<Task>()
-                .GetById(x => x.Id == taskId)
-                .Include(t => t.TaskDurations)
-                .FirstOrDefaultAsync();
-
-            if (task == null || task.TaskDurations == null || !task.TaskDurations.Any())
-            {
-                return null;
-            }
-
-            var totalDuration = task.TaskDurations
-                .Where(td => td.EndTime != default) // Only consider durations with an end time set
-                .Sum(td => td.Duration.TotalSeconds); // Summing durations in seconds for precision
-
-            var timeSpan = TimeSpan.FromSeconds(totalDuration);
-
-            return timeSpan;
-        }
+        #endregion
     }
 }

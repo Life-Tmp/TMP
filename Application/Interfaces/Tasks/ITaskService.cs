@@ -6,7 +6,7 @@ namespace TMPApplication.Interfaces.Tasks
 {
     public interface ITaskService
     {
-        Task<IEnumerable<TaskDto>> GetTasksAsync(int? projectId);
+        Task<IEnumerable<TaskDto>> GetTasksAsync();
         Task<TaskDto> GetTaskByIdAsync(int id);
         Task<IEnumerable<UserDetailsDto>> GetAssignedUsersAsync(int taskId);
         Task<IEnumerable<TaskDto>> GetTasksByUserIdAsync(string userId);

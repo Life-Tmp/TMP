@@ -1,27 +1,27 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity.Data; //TODO: get more info about this
 using Microsoft.AspNetCore.Mvc;
 using TMPApplication.DTOs.UserDtos;
 using TMPApplication.UserTasks;
 using TMPDomain.HelperModels;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Identity.Data;
 
 namespace TMPService.Controllers.Users
 {
     [ApiController]
     [Route("api/[controller]")]
-
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
 
-
         public UserController(IUserService userService, IConfiguration configuration)
         {
             _userService = userService;
-
         }
 
+        #region Authentication
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
@@ -37,7 +37,6 @@ namespace TMPService.Controllers.Users
             }
         }
 
-
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest, string firstName, string lastName)
         {
@@ -48,16 +47,16 @@ namespace TMPService.Controllers.Users
             }
             catch (Exception e)
             {
-                return BadRequest(new { Message = " Registration failed", Error = e.Message });
+                return BadRequest(new { Message = "Registration failed", Error = e.Message });
             }
         }
+        #endregion
 
-
+        #region Profile
         [HttpGet("profile")]
         [Authorize]
         public async Task<IActionResult> GetUserProfileInfo()
         {
-
             var accessToken = await HttpContext.GetTokenAsync("access_token");
             var userProfileInfo = await _userService.GetUserProfileAsync(accessToken);
 
@@ -68,15 +67,15 @@ namespace TMPService.Controllers.Users
             return BadRequest();
         }
 
-
         [HttpPut("profile/update")]
         [Authorize]
         public async Task<IActionResult> UpdateUserProfile(string userId, [FromBody] UserProfileUpdateDto updateRequest)
         {
-            return await _userService.UpdateUserProfileAsync(userId, updateRequest); //TODO: Update this
+            return await _userService.UpdateUserProfileAsync(userId, updateRequest);
         }
+        #endregion
 
-
+        #region User Management
         [HttpDelete("delete")]
         [Authorize(Policy = "AdminRoleRequired")]
         public async Task<IActionResult> DeleteUserAsync(string userId)
@@ -88,7 +87,6 @@ namespace TMPService.Controllers.Users
             return BadRequest(deleteResponse);
         }
 
-
         [HttpPatch("change-password")]
         [Authorize]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
@@ -97,7 +95,6 @@ namespace TMPService.Controllers.Users
             {
                 return BadRequest("Invalid input.");
             }
-
 
             var response = await _userService.ChangePasswordAsync(request);
 
@@ -110,7 +107,9 @@ namespace TMPService.Controllers.Users
                 return StatusCode(response.StatusCode, response);
             }
         }
+        #endregion
 
+        #region Statistics
         [HttpGet("activity")]
         [Authorize]
         public async Task<IActionResult> GetUsersStatistics()
@@ -122,16 +121,17 @@ namespace TMPService.Controllers.Users
         }
 
         [HttpGet("paged")]
-        public async Task<IActionResult> GetPagedUsers([FromQuery] int pageNumber = 1,[FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetPagedUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             var pagedUsers = await _userService.GetPagedAsync(pageNumber, pageSize);
 
-            if(pagedUsers == null || pagedUsers.Items.Count == 0)
+            if (pagedUsers == null || pagedUsers.Items.Count == 0)
             {
                 return NotFound("No users found");
             }
 
             return Ok(pagedUsers);
         }
+        #endregion
     }
 }
