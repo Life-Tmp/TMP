@@ -13,6 +13,9 @@ using TMPInfrastructure.Messaging;
 using Task = System.Threading.Tasks.Task;
 using System.Collections.Generic;
 using System.Linq;
+using TMPApplication.Interfaces;
+using Amazon.Runtime.Internal.Util;
+using TMPCommon.Constants;
 
 namespace TMPInfrastructure.Implementations.Notifications
 {
@@ -24,6 +27,7 @@ namespace TMPInfrastructure.Implementations.Notifications
         private readonly ILogger<NotificationService> _logger;
         private readonly IHubContext<NotificationHub> _notificationHub;
         private readonly IMapper _mapper;
+        private readonly ICacheService _cache;
 
         public NotificationService(
             IUnitOfWork unitOfWork,
@@ -31,7 +35,8 @@ namespace TMPInfrastructure.Implementations.Notifications
             RabbitMQService rabbitMQConfig,
             ILogger<NotificationService> logger,
             IHubContext<NotificationHub> notificationHub,
-            IMapper mapper)
+            IMapper mapper,
+            ICacheService cache)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -39,6 +44,7 @@ namespace TMPInfrastructure.Implementations.Notifications
             _rabbitMQConfig = rabbitMQConfig;
             _notificationHub = notificationHub;
             _mapper = mapper;
+            _cache = cache;
         }
 
         #region Create
@@ -64,6 +70,9 @@ namespace TMPInfrastructure.Implementations.Notifications
 
             await _notificationHub.Clients.Group(userId).SendAsync("ReceiveNotifications", message);
             _rabbitMQConfig.PublishMessage(notification, type);
+
+            var cacheKey = string.Format(NotificationsConstants.NotificationsByUser, userId);
+            await _cache.DeleteKeyAsync(cacheKey);
         }
         #endregion
 
@@ -80,6 +89,14 @@ namespace TMPInfrastructure.Implementations.Notifications
 
             _logger.LogInformation("Fetching all notifications for user {UserId}", userId);
 
+            var cacheKey = string.Format(NotificationsConstants.NotificationsByUser, userId);
+            var cachedNotifications = await _cache.GetAsync<List<NotificationDto>>(cacheKey);
+
+            if (cachedNotifications != null)
+            {
+                return cachedNotifications;
+            }
+
             var allNotifications = await _unitOfWork.Repository<Notification>().GetByCondition(x => x.UserId == userId).ToListAsync();
 
             if (allNotifications == null)
@@ -88,7 +105,10 @@ namespace TMPInfrastructure.Implementations.Notifications
                 return new List<NotificationDto>();
             }
 
-            return _mapper.Map<List<NotificationDto>>(allNotifications);
+            var notificationsDtos = _mapper.Map<List<NotificationDto>>(allNotifications);
+
+            await _cache.SetAsync(cacheKey, notificationsDtos, TimeSpan.FromMinutes(30));
+            return notificationsDtos;
         }
 
         public async Task<List<NotificationDto>> GetLatestNotifications(int numberOfLatestNotifications)
@@ -103,13 +123,25 @@ namespace TMPInfrastructure.Implementations.Notifications
 
             _logger.LogInformation("Fetching the latest {Number} notifications for user {UserId}", numberOfLatestNotifications, userId);
 
-            var allNotifications = await _unitOfWork.Repository<Notification>()
+            var cacheKey = string.Format(NotificationsConstants.LatestNotifications, userId, numberOfLatestNotifications);
+            var cachedNotifications = await _cache.GetAsync<List<NotificationDto>>(cacheKey);
+
+            if (cachedNotifications != null)
+            {
+                return cachedNotifications;
+            }
+
+            var latestNotifications = await _unitOfWork.Repository<Notification>()
                                                     .GetByCondition(x => x.UserId == userId)
                                                     .OrderByDescending(x => x.CreatedAt)
                                                     .Take(numberOfLatestNotifications)
                                                     .ToListAsync();
 
-            return _mapper.Map<List<NotificationDto>>(allNotifications);
+            var latestNotificationsDtos = _mapper.Map<List<NotificationDto>>(latestNotifications);
+            await _cache.SetAsync(cacheKey, latestNotificationsDtos, TimeSpan.FromMinutes(30));
+
+            return latestNotificationsDtos;
+
         }
         #endregion
 
@@ -125,6 +157,13 @@ namespace TMPInfrastructure.Implementations.Notifications
                 _unitOfWork.Repository<Notification>().Update(notification);
                 _unitOfWork.Complete();
                 _logger.LogInformation("Notification {NotificationId} marked as read", notificationId);
+
+                var userId = _httpContextAccess.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+                if (userId != null)
+                {
+                    var cacheKey = string.Format(NotificationsConstants.NotificationsByUser, userId);
+                    await _cache.DeleteKeyAsync(cacheKey);
+                }
             }
             else
             {

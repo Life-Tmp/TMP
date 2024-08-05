@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,7 @@ using System.Text;
 using TMP.Application.Interfaces;
 using TMPApplication.DTOs.UserDtos;
 using TMPApplication.UserTasks;
-using TMPDomain.Entities;
+using User = TMPDomain.Entities.User;
 using TMPDomain.HelperModels;
 
 namespace TMPInfrastructure.Implementations
@@ -108,7 +109,7 @@ namespace TMPInfrastructure.Implementations
 
                 var requestContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
 
-                var request = new HttpRequestMessage(HttpMethod.Post, _configuration["AuthoritySettings:UserCreationEndpoint"])
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{_configuration["AuthoritySettings:ManagementEndpoint"]}/users")
                 {
                     Content = requestContent
                 };
@@ -265,7 +266,7 @@ namespace TMPInfrastructure.Implementations
                     {
                         given_name = updateRequest.FirstName,
                         family_name = updateRequest.LastName,
-                       
+
                         //picture = updateRequest.Picture,
                         user_metadata = new
                         {
