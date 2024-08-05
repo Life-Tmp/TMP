@@ -58,7 +58,7 @@ namespace TMPService.Controllers
             _logger.LogInformation("Fetching all notifications for the current user");
             try
             {
-                var notifications = await _notificationService.GetAllNotifications();
+                var notifications = await _notificationService.GetLatestNotifications(numberOfLatestNotifications);
                 return Ok(notifications);
             }
             catch (Exception e)

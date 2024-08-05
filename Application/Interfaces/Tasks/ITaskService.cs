@@ -20,6 +20,6 @@ namespace TMPApplication.Interfaces.Tasks
         Task<TimeSpan?> GetTaskDurationAsync(int taskId);
         Task<IEnumerable<CommentDto>> GetCommentsByTaskIdAsync(int taskId);
         Task<IEnumerable<SubtaskDto>> GetSubtasksByTaskIdAsync(int taskId);
-        Task<Event> AddTaskAsEventInCalendar(int taskId);
+        //Task<Event> AddTaskAsEventInCalendar(int taskId);
     }
 }

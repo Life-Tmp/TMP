@@ -2,11 +2,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TMPApplication.DTOs.UserDtos;
-using TMPApplication.UserTasks;
 using TMPDomain.HelperModels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity.Data;
+using TMPApplication.Interfaces.UserTasks;
 
 namespace TMPService.Controllers.Users
 {
@@ -22,7 +22,14 @@ namespace TMPService.Controllers.Users
         }
 
         #region Authentication
+
+        /// <summary>
+        /// Authenticates a user and returns an access token.
+        /// </summary>
+        /// <param name="loginRequest">The login request containing credentials.</param>
+        /// <returns>200 OK with the access token; 401 Unauthorized if authentication fails.</returns>
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
             var loginResponse = await _userService.LoginWithCredentials(loginRequest);
@@ -37,7 +44,15 @@ namespace TMPService.Controllers.Users
             }
         }
 
+        /// <summary>
+        /// Registers a new user.
+        /// </summary>
+        /// <param name="registerRequest">The registration request containing user details.</param>
+        /// <param name="firstName">The first name of the user.</param>
+        /// <param name="lastName">The last name of the user.</param>
+        /// <returns>200 OK if registration is successful; 400 Bad Request if registration fails.</returns>
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest, string firstName, string lastName)
         {
             try
@@ -53,6 +68,11 @@ namespace TMPService.Controllers.Users
         #endregion
 
         #region Profile
+
+        /// <summary>
+        /// Retrieves the profile information of the currently authenticated user.
+        /// </summary>
+        /// <returns>200 OK with the user's profile information; 400 Bad Request if retrieval fails.</returns>
         [HttpGet("profile")]
         [Authorize]
         public async Task<IActionResult> GetUserProfileInfo()
@@ -67,6 +87,12 @@ namespace TMPService.Controllers.Users
             return BadRequest();
         }
 
+        /// <summary>
+        /// Updates the profile information of a user.
+        /// </summary>
+        /// <param name="userId">The ID of the user.</param>
+        /// <param name="updateRequest">The updated profile information.</param>
+        /// <returns>200 OK if the update is successful; 400 Bad Request if the update fails.</returns>
         [HttpPut("profile/update")]
         [Authorize]
         public async Task<IActionResult> UpdateUserProfile(string userId, [FromBody] UserProfileUpdateDto updateRequest)
@@ -76,6 +102,12 @@ namespace TMPService.Controllers.Users
         #endregion
 
         #region User Management
+
+        /// <summary>
+        /// Deletes a user by their ID.
+        /// </summary>
+        /// <param name="userId">The ID of the user to delete.</param>
+        /// <returns>200 OK if the deletion is successful; 400 Bad Request if the deletion fails.</returns>
         [HttpDelete("delete")]
         [Authorize(Policy = "AdminRoleRequired")]
         public async Task<IActionResult> DeleteUserAsync(string userId)
@@ -87,6 +119,11 @@ namespace TMPService.Controllers.Users
             return BadRequest(deleteResponse);
         }
 
+        /// <summary>
+        /// Changes the password of the currently authenticated user.
+        /// </summary>
+        /// <param name="request">The change password request containing old and new passwords.</param>
+        /// <returns>200 OK if the password change is successful; 400 Bad Request if the change fails.</returns>
         [HttpPatch("change-password")]
         [Authorize]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
@@ -110,8 +147,13 @@ namespace TMPService.Controllers.Users
         #endregion
 
         #region Statistics
+
+        /// <summary>
+        /// Retrieves statistics about the authenticated user's activity.
+        /// </summary>
+        /// <returns>200 OK with the user's statistics; 204 No Content if no statistics are available.</returns>
         [HttpGet("activity")]
-        [Authorize]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> GetUsersStatistics()
         {
             var userStatistics = await _userService.GetUserStatistics();
@@ -120,7 +162,14 @@ namespace TMPService.Controllers.Users
             return Ok(userStatistics);
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of users.
+        /// </summary>
+        /// <param name="pageNumber">The page number to retrieve.</param>
+        /// <param name="pageSize">The number of users per page.</param>
+        /// <returns>200 OK with a paginated list of users; 404 Not Found if no users are found.</returns>
         [HttpGet("paged")]
+        [Authorize]
         public async Task<IActionResult> GetPagedUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             var pagedUsers = await _userService.GetPagedAsync(pageNumber, pageSize);

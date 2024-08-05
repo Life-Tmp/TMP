@@ -12,7 +12,6 @@ using Serilog.Sinks.Elasticsearch;
 using StackExchange.Redis;
 using System.Reflection;
 using System.Runtime.Loader;
-using TMP.Application.Comments;
 using TMP.Application.Hubs;
 using TMP.Application.Interfaces;
 using TMP.Application.Interfaces.Tags;
@@ -21,15 +20,16 @@ using TMP.Infrastructure.Implementations.ContactForms;
 using TMP.Infrastructure.Implementations.Tags;
 using TMP.Persistence;
 using TMP.Service.Helpers;
-using TMPApplication.AttachmentTasks;
 using TMPApplication.Hubs;
 using TMPApplication.Interfaces;
+using TMPApplication.Interfaces.AttachmentTasks;
+using TMPApplication.Interfaces.Comments;
 using TMPApplication.Interfaces.ContactForms;
 using TMPApplication.Interfaces.Invitations;
 using TMPApplication.Interfaces.Reminders;
 using TMPApplication.Interfaces.Subtasks;
+using TMPApplication.Interfaces.UserTasks;
 using TMPApplication.Notifications;
-using TMPApplication.UserTasks;
 using TMPDomain.Entities;
 using TMPDomain.Validations;
 using TMPInfrastructure.Implementations;
@@ -240,7 +240,7 @@ class Program
                 c.OAuthClientSecret(builder.Configuration["AuthoritySettings:ClientSecret"]);
                 c.OAuthAppName("TMP");
                 c.OAuthUsePkce();
-                c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+                
             });
         }
 

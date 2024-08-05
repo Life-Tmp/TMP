@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TMP.Application.DTOs.ProjectUserDtos;
 using TMP.Application.Interfaces;
@@ -18,14 +19,16 @@ namespace TMPInfrastructure.Implementations
         private readonly IProjectService _projectService;
         private readonly IMapper _mapper;
         private readonly ILogger<InvitationService> _logger;
+        private readonly IConfiguration _configuration;
 
-        public InvitationService(IEmailService emailService, IUnitOfWork unitOfWork, IProjectService projectService, IMapper mapper, ILogger<InvitationService> logger)
+        public InvitationService(IEmailService emailService, IUnitOfWork unitOfWork, IProjectService projectService, IMapper mapper, ILogger<InvitationService> logger, IConfiguration configuration)
         {
             _projectService = projectService;
             _emailService = emailService;
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+            _configuration = configuration;
         }
 
         #region Create
@@ -53,7 +56,7 @@ namespace TMPInfrastructure.Implementations
             _unitOfWork.Repository<Invitation>().Create(invitation);
             await _unitOfWork.Repository<Invitation>().SaveChangesAsync();
 
-            var invitationLink = $"url?token={token}";
+            var invitationLink = $"{_configuration["FrontEndUrl"]}?token={token}";
             var emailBody = $"You have been invited to join a project. Click <a href='{invitationLink}'>here</a> to accept the invitation.";
             await _emailService.SendEmail(email, "Project Invitation", emailBody);
 

@@ -48,6 +48,7 @@ namespace TMPInfrastructure.Implementations.Notifications
             _mapper = mapper;
             _cache = cache;
             _notificationValidator = notificationValidator;
+            _rabbitMQConfig = rabbitMQConfig;
         }
 
 

@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using TMPApplication.DTOs.UserDtos;
-using TMPApplication.UserTasks;
+using TMPApplication.Interfaces.UserTasks;
 using TMPDomain.HelperModels;
 using TMPService.Controllers.Users;
 using Xunit;

@@ -5,8 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using TMP.Application.Comments;
 using TMP.Application.DTOs.CommentDtos;
+using TMPApplication.Interfaces.Comments;
 
 namespace TMPService.Controllers.Comments
 {
@@ -22,8 +22,13 @@ namespace TMPService.Controllers.Comments
             _commentService = commentService;
             _logger = logger;
         }
-        
+
         #region Read
+        /// <summary>
+        /// Retrieves a list of all comments.
+        /// </summary>
+        /// <returns>200 OK with a list of comments.</returns>
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CommentDto>>> GetComments()
         {
@@ -32,6 +37,12 @@ namespace TMPService.Controllers.Comments
             return Ok(comments);
         }
 
+        /// <summary>
+        /// Retrieves a comment by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the comment to retrieve.</param>
+        /// <returns>200 OK with the comment details; 404 Not Found if the comment does not exist.</returns>
+        [Authorize]
         [HttpGet("{id:int}")]
         public async Task<ActionResult<CommentDto>> GetComment(int id)
         {
@@ -46,6 +57,10 @@ namespace TMPService.Controllers.Comments
             return Ok(comment);
         }
 
+        /// <summary>
+        /// Retrieves the comments made by the currently logged-in user.
+        /// </summary>
+        /// <returns>200 OK with a list of comments; 401 Unauthorized if the user is not authenticated.</returns>
         [Authorize]
         [HttpGet("my-comments")]
         public async Task<ActionResult<IEnumerable<CommentDto>>> GetMyComments()
@@ -64,6 +79,11 @@ namespace TMPService.Controllers.Comments
         #endregion
 
         #region Create
+        /// <summary>
+        /// Adds a new comment.
+        /// </summary>
+        /// <param name="newComment">The details of the comment to add.</param>
+        /// <returns>The created comment.</returns>
         [Authorize]
         [HttpPost]
         public async Task<ActionResult<CommentDto>> AddComment([FromBody] AddCommentDto newComment)
@@ -84,7 +104,13 @@ namespace TMPService.Controllers.Comments
         #endregion
 
         #region Update
-
+        /// <summary>
+        /// Updates an existing comment.
+        /// </summary>
+        /// <param name="id">The ID of the comment to update.</param>
+        /// <param name="updatedComment">The updated comment details.</param>
+        /// <returns>No content if successful, otherwise a not found response.</returns>
+        [Authorize]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateComment(int id, [FromBody] AddCommentDto updatedComment)
         {
@@ -102,6 +128,12 @@ namespace TMPService.Controllers.Comments
         #endregion
 
         #region Delete
+        /// <summary>
+        /// Deletes a comment by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the comment to delete.</param>
+        /// <returns>204 No Content if the deletion is successful; 404 Not Found if the comment does not exist.</returns>
+        [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteComment(int id)
         {

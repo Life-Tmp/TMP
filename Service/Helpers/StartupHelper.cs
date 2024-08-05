@@ -89,30 +89,6 @@ namespace TMP.Service.Helpers
                             };
 
                             userService.Repository<User>().Create(userToBeAdded);
-
-                            //var emailService = context.HttpContext.RequestServices.GetService<IEmailSender>();
-                            //var hostEnvironment = context.HttpContext.RequestServices.GetService<IWebHostEnvironment>();
-
-                            //if (emailService != null)
-                            //{
-                            //    var subject = "Welcome to Life TMP";
-                            //    var htmlBody = string.Empty;
-
-                            //    using (StreamReader streamReader = File.OpenText("Templates/EmailTemplate.html"))
-                            //    {
-                            //        htmlBody = streamReader.ReadToEnd();
-                            //    }
-
-                            //    string messageBody = string.Format(htmlBody, "Welcome to TMP",
-                            //        "Greetings",
-                            //        userToBeAdded.FirstName,
-                            //        "An account has been created for you with the following email:",
-                            //        userToBeAdded.EmailAddress,
-                            //        "Best regards,",
-                            //        "Life Team");
-
-                            //    emailService.SendEmailAsync(userToBeAdded.EmailAddress, subject, messageBody);
-                            //}
                         }
 
                         var roles = context.Principal.FindAll("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/roles")

@@ -297,6 +297,24 @@ namespace TMPService.Controllers.Tasks
 
             return Ok("User assigned to task successfully.");
         }
+
+        /*/// <summary>
+        /// Adds a task to the calendar.
+        /// </summary>
+        /// <param name="taskId">The ID of the task to add to the calendar.</param>
+        /// <returns>200 OK if the task is successfully added to the calendar; 400 Bad Request if the task ID is invalid.</returns>
+        [Authorize]
+        [HttpPost("add-to-calendar")]
+        public async Task<IActionResult> AddTaskToCalendar(int taskId)
+        {
+            var eventToAdd = await _taskService.AddTaskAsEventInCalendar(taskId);
+
+            if (eventToAdd == null)
+            {
+                return BadRequest();
+            }
+            return Ok(eventToAdd);
+        }*/
         #endregion
 
         #region Update
@@ -448,25 +466,6 @@ namespace TMPService.Controllers.Tasks
 
             return Ok("User removed from task successfully.");
         }
-
-        /// <summary>
-        /// Adds a task to the calendar.
-        /// </summary>
-        /// <param name="taskId">The ID of the task to add to the calendar.</param>
-        /// <returns>200 OK if the task is successfully added to the calendar; 400 Bad Request if the task ID is invalid.</returns>
-        [Authorize]
-        [HttpPost("add-to-calendar")]
-        public async Task<IActionResult> AddTaskToCalendar(int taskId)
-        {
-            var eventToAdd = await _taskService.AddTaskAsEventInCalendar(taskId);
-
-            if (eventToAdd == null)
-            {
-                return BadRequest();
-            }
-            return Ok(eventToAdd);
-        }
         #endregion
-
     }
 }

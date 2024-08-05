@@ -23,6 +23,12 @@ namespace TMP.Service.Controllers
         }
 
         #region Read
+
+        /// <summary>
+        /// Retrieves a list of all teams.
+        /// </summary>
+        /// <returns>200 OK with a list of teams.</returns>
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TeamDto>>> GetTeams()
         {
@@ -31,6 +37,12 @@ namespace TMP.Service.Controllers
             return Ok(teams);
         }
 
+        /// <summary>
+        /// Retrieves a team by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the team to retrieve.</param>
+        /// <returns>200 OK with the team details; 404 Not Found if the team does not exist.</returns>
+        [Authorize]
         [HttpGet("{id:int}")]
         public async Task<ActionResult<TeamDto>> GetTeam(int id)
         {
@@ -45,6 +57,10 @@ namespace TMP.Service.Controllers
             return Ok(team);
         }
 
+        /// <summary>
+        /// Retrieves the teams assigned to the currently logged-in user.
+        /// </summary>
+        /// <returns>200 OK with a list of teams; 401 Unauthorized if the user is not authenticated.</returns>
         [Authorize]
         [HttpGet("my-teams")]
         public async Task<ActionResult<IEnumerable<TeamDto>>> GetUserTeams()
@@ -61,6 +77,12 @@ namespace TMP.Service.Controllers
             return Ok(teams);
         }
 
+        /// <summary>
+        /// Retrieves the members of a specific team.
+        /// </summary>
+        /// <param name="id">The ID of the team.</param>
+        /// <returns>200 OK with a list of team members; 404 Not Found if the team does not exist.</returns>
+        [Authorize]
         [HttpGet("{id:int}/members")]
         public async Task<ActionResult<IEnumerable<TeamMemberDto>>> GetTeamMembers(int id)
         {
@@ -75,6 +97,12 @@ namespace TMP.Service.Controllers
             return Ok(members);
         }
 
+        /// <summary>
+        /// Retrieves the projects assigned to a specific team.
+        /// </summary>
+        /// <param name="id">The ID of the team.</param>
+        /// <returns>200 OK with a list of team projects; 404 Not Found if the team does not exist.</returns>
+        [Authorize]
         [HttpGet("{id:int}/projects")]
         public async Task<ActionResult<TeamProjectsDto>> GetTeamProjects(int id)
         {
@@ -88,9 +116,16 @@ namespace TMP.Service.Controllers
 
             return Ok(teamProjects);
         }
+
         #endregion
 
         #region Create
+
+        /// <summary>
+        /// Adds a new team.
+        /// </summary>
+        /// <param name="newTeam">The details of the team to add.</param>
+        /// <returns>The created team.</returns>
         [Authorize]
         [HttpPost]
         public async Task<ActionResult<TeamDto>> AddTeam([FromBody] AddTeamDto newTeam)
@@ -107,9 +142,14 @@ namespace TMP.Service.Controllers
             return CreatedAtAction(nameof(GetTeam), new { id = team.Id }, team);
         }
 
+        /// <summary>
+        /// Adds a user to a team.
+        /// </summary>
+        /// <param name="addTeamMemberDto">The details of the user to add to the team.</param>
+        /// <returns>200 OK if the user is added successfully; 400 Bad Request if the user cannot be added.</returns>
         [Authorize]
         [HttpPost("add-member")]
-        public async Task<IActionResult> AddUserToTeam(AddTeamMemberDto addTeamMemberDto)
+        public async Task<IActionResult> AddUserToTeam([FromBody] AddTeamMemberDto addTeamMemberDto)
         {
             _logger.LogInformation("Adding user with ID: {UserId} to team with ID: {TeamId}", addTeamMemberDto.UserId, addTeamMemberDto.TeamId);
             var result = await _teamService.AddUserToTeamAsync(addTeamMemberDto);
@@ -120,12 +160,20 @@ namespace TMP.Service.Controllers
             }
             return Ok("User added to the team successfully.");
         }
+
         #endregion
 
         #region Update
+
+        /// <summary>
+        /// Updates an existing team.
+        /// </summary>
+        /// <param name="id">The ID of the team to update.</param>
+        /// <param name="updatedTeam">The updated team details.</param>
+        /// <returns>No content if successful, otherwise a not found response.</returns>
         [Authorize]
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateTeam(int id, AddTeamDto updatedTeam)
+        public async Task<IActionResult> UpdateTeam(int id, [FromBody] AddTeamDto updatedTeam)
         {
             _logger.LogInformation("Updating team with ID: {TeamId}", id);
             var result = await _teamService.UpdateTeamAsync(id, updatedTeam);
@@ -138,9 +186,15 @@ namespace TMP.Service.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Updates the role of a user in a team.
+        /// </summary>
+        /// <param name="id">The ID of the team.</param>
+        /// <param name="updateUserRoleDto">The new role details.</param>
+        /// <returns>200 OK if the role is updated successfully; 400 Bad Request if the role cannot be updated.</returns>
         [Authorize]
         [HttpPatch("{id:int}/update-member-role")]
-        public async Task<IActionResult> UpdateUserRoleInTeam(int id, UpdateTeamMemberRoleDto updateUserRoleDto)
+        public async Task<IActionResult> UpdateUserRoleInTeam(int id, [FromBody] UpdateTeamMemberRoleDto updateUserRoleDto)
         {
             _logger.LogInformation("Updating role of user with ID: {UserId} in team with ID: {TeamId}", updateUserRoleDto.UserId, id);
             var result = await _teamService.UpdateUserRoleInTeamAsync(id, updateUserRoleDto.UserId, updateUserRoleDto.NewRole);
@@ -151,9 +205,16 @@ namespace TMP.Service.Controllers
             }
             return Ok("Role updated successfully.");
         }
+
         #endregion
 
         #region Delete
+
+        /// <summary>
+        /// Deletes a team by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the team to delete.</param>
+        /// <returns>204 No Content if the deletion is successful; 404 Not Found if the team does not exist.</returns>
         [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteTeam(int id)
@@ -169,9 +230,14 @@ namespace TMP.Service.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Removes a user from a team.
+        /// </summary>
+        /// <param name="removeUserFromTeamDto">The details of the user to remove from the team.</param>
+        /// <returns>200 OK if the user is removed successfully; 400 Bad Request if the user cannot be removed.</returns>
         [Authorize]
         [HttpDelete("remove-user")]
-        public async Task<IActionResult> RemoveUserFromTeam(RemoveTeamMemberDto removeUserFromTeamDto)
+        public async Task<IActionResult> RemoveUserFromTeam([FromBody] RemoveTeamMemberDto removeUserFromTeamDto)
         {
             _logger.LogInformation("Removing user with ID: {UserId} from team with ID: {TeamId}", removeUserFromTeamDto.UserId, removeUserFromTeamDto.TeamId);
             var result = await _teamService.RemoveUserFromTeamAsync(removeUserFromTeamDto);
@@ -183,6 +249,7 @@ namespace TMP.Service.Controllers
 
             return Ok("User removed from team successfully.");
         }
+
         #endregion
     }
 }
