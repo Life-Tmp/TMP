@@ -10,6 +10,7 @@ using TMP.Application.DTOs.CommentDtos;
 using TMP.Application.Interfaces;
 using TMPDomain.Entities;
 using TMP.Application.Hubs;
+using TaskEntity = TMPDomain.Entities.Task;
 
 namespace TMP.Infrastructure.Implementations
 {
@@ -71,6 +72,13 @@ namespace TMP.Infrastructure.Implementations
         {
             _logger.LogInformation("Adding new comment for user ID: {UserId}", userId);
 
+            var task = await _unitOfWork.Repository<TaskEntity>().GetById(t => t.Id == newComment.TaskId).FirstOrDefaultAsync();
+            if (task == null)
+            {
+                _logger.LogWarning("Task with ID: {TaskId} not found", newComment.TaskId);
+                return null;
+            }
+
             var comment = _mapper.Map<Comment>(newComment);
             comment.UserId = userId;
             comment.CreatedAt = DateTime.UtcNow;
@@ -79,7 +87,10 @@ namespace TMP.Infrastructure.Implementations
             await _unitOfWork.Repository<Comment>().SaveChangesAsync();
 
             var commentDto = _mapper.Map<CommentDto>(comment);
-            await _commentHubContext.Clients.All.SendAsync("ReceiveComment", commentDto);
+
+            var projectId = task.ProjectId;
+
+            await _commentHubContext.Clients.Group(projectId.ToString()).SendAsync("ReceiveComment", commentDto);
 
             _logger.LogInformation("Comment with ID: {CommentId} added successfully", comment.Id);
 

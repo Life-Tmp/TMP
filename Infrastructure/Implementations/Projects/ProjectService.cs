@@ -7,6 +7,7 @@ using TMP.Application.Interfaces;
 using TMPApplication.DTOs.ProjectDtos;
 using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Projects;
+using TMPCommon.Constants;
 using TMPDomain.Entities;
 using TMPDomain.Enumerations;
 using System.Collections.Generic;
@@ -21,13 +22,15 @@ namespace TMPInfrastructure.Implementations.Projects
         private readonly IMapper _mapper;
         private readonly ISearchService<ProjectDto> _searchService;
         private readonly ILogger<ProjectService> _logger;
+        private readonly ICacheService _cache;
 
-        public ProjectService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<ProjectDto> searchService, ILogger<ProjectService> logger)
+        public ProjectService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<ProjectDto> searchService, ILogger<ProjectService> logger, ICacheService cache)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _searchService = searchService;
             _logger = logger;
+            _cache = cache;
         }
 
         #region Read
@@ -35,18 +38,36 @@ namespace TMPInfrastructure.Implementations.Projects
         {
             _logger.LogInformation("Fetching all projects");
 
+            var cacheKey = ProjectsConstants.AllProjects;
+            var cachedProjects = await _cache.GetAsync<IEnumerable<ProjectDto>>(cacheKey);
+            if (cachedProjects != null)
+            {
+                _logger.LogInformation("All projects found in cache");
+                return cachedProjects;
+            }
+
             var projects = await _unitOfWork.Repository<Project>()
                                             .GetAll()
                                             .Include(p => p.Columns)
                                             .ToListAsync();
 
             var projectDtos = _mapper.Map<IEnumerable<ProjectDto>>(projects);
+            await _cache.SetAsync(cacheKey, projectDtos, TimeSpan.FromMinutes(60));
+
             return projectDtos;
         }
 
         public async Task<ProjectDto> GetProjectByIdAsync(int id)
         {
             _logger.LogInformation("Fetching project with ID: {ProjectId}", id);
+
+            var cacheKey = string.Format(ProjectsConstants.ProjectById, id);
+            var cachedProject = await _cache.GetAsync<ProjectDto>(cacheKey);
+            if (cachedProject != null)
+            {
+                _logger.LogInformation("Project with ID: {ProjectId} found in cache", id);
+                return cachedProject;
+            }
 
             var project = await _unitOfWork.Repository<Project>()
                                            .GetById(p => p.Id == id)
@@ -59,6 +80,8 @@ namespace TMPInfrastructure.Implementations.Projects
             }
 
             var projectDto = _mapper.Map<ProjectDto>(project);
+            await _cache.SetAsync(cacheKey, projectDto, TimeSpan.FromMinutes(60));
+
             return projectDto;
         }
 
@@ -66,12 +89,22 @@ namespace TMPInfrastructure.Implementations.Projects
         {
             _logger.LogInformation("Fetching projects for user {UserId}", userId);
 
+            var cacheKey = string.Format(ProjectsConstants.ProjectsByUser, userId);
+            var cachedProjects = await _cache.GetAsync<IEnumerable<ProjectDto>>(cacheKey);
+            if (cachedProjects != null)
+            {
+                _logger.LogInformation("Projects for user {UserId} found in cache", userId);
+                return cachedProjects;
+            }
+
             var projects = await _unitOfWork.Repository<Project>()
                 .GetByCondition(p => p.ProjectUsers.Any(pu => pu.UserId == userId))
                 .Include(p => p.Columns)
                 .ToListAsync();
 
             var projectDtos = _mapper.Map<IEnumerable<ProjectDto>>(projects);
+            await _cache.SetAsync(cacheKey, projectDtos, TimeSpan.FromMinutes(60));
+
             return projectDtos;
         }
 
@@ -79,16 +112,35 @@ namespace TMPInfrastructure.Implementations.Projects
         {
             _logger.LogInformation("Fetching user role for user {UserId} in project {ProjectId}", userId, projectId);
 
+            var cacheKey = string.Format(ProjectsConstants.UserRoleInProject, projectId, userId);
+            var cachedUserRole = await _cache.GetAsync<string>(cacheKey);
+            if (cachedUserRole != null)
+            {
+                _logger.LogInformation("User role for user {UserId} in project {ProjectId} found in cache", userId, projectId);
+                return cachedUserRole;
+            }
+
             var projectUser = await _unitOfWork.Repository<ProjectUser>()
                 .GetByCondition(pu => pu.ProjectId == projectId && pu.UserId == userId)
                 .FirstOrDefaultAsync();
 
-            return projectUser?.Role.ToString();
+            var userRole = projectUser?.Role.ToString();
+            await _cache.SetAsync(cacheKey, userRole, TimeSpan.FromMinutes(60));
+
+            return userRole;
         }
 
         public async Task<ProjectUsersDto> GetProjectUsersAsync(int projectId)
         {
             _logger.LogInformation("Fetching users for project {ProjectId}", projectId);
+
+            var cacheKey = string.Format(ProjectsConstants.ProjectUsers, projectId);
+            var cachedProjectUsers = await _cache.GetAsync<ProjectUsersDto>(cacheKey);
+            if (cachedProjectUsers != null)
+            {
+                _logger.LogInformation("Users for project {ProjectId} found in cache", projectId);
+                return cachedProjectUsers;
+            }
 
             var project = await _unitOfWork.Repository<Project>()
                 .GetById(p => p.Id == projectId)
@@ -101,12 +153,23 @@ namespace TMPInfrastructure.Implementations.Projects
                 return null;
             }
 
-            return _mapper.Map<ProjectUsersDto>(project);
+            var projectUsersDto = _mapper.Map<ProjectUsersDto>(project);
+            await _cache.SetAsync(cacheKey, projectUsersDto, TimeSpan.FromMinutes(60));
+
+            return projectUsersDto;
         }
 
         public async Task<ProjectTeamsDto> GetProjectTeamsAsync(int projectId)
         {
             _logger.LogInformation("Fetching teams for project {ProjectId}", projectId);
+
+            var cacheKey = string.Format(ProjectsConstants.ProjectTeams, projectId);
+            var cachedProjectTeams = await _cache.GetAsync<ProjectTeamsDto>(cacheKey);
+            if (cachedProjectTeams != null)
+            {
+                _logger.LogInformation("Teams for project {ProjectId} found in cache", projectId);
+                return cachedProjectTeams;
+            }
 
             var project = await _unitOfWork.Repository<Project>()
                 .GetById(p => p.Id == projectId)
@@ -120,12 +183,23 @@ namespace TMPInfrastructure.Implementations.Projects
                 return null;
             }
 
-            return _mapper.Map<ProjectTeamsDto>(project);
+            var projectTeamsDto = _mapper.Map<ProjectTeamsDto>(project);
+            await _cache.SetAsync(cacheKey, projectTeamsDto, TimeSpan.FromMinutes(60));
+
+            return projectTeamsDto;
         }
 
         public async Task<ProjectTasksDto> GetProjectTasksAsync(int projectId)
         {
             _logger.LogInformation("Fetching tasks for project {ProjectId}", projectId);
+
+            var cacheKey = string.Format(ProjectsConstants.ProjectTasks, projectId);
+            var cachedProjectTasks = await _cache.GetAsync<ProjectTasksDto>(cacheKey);
+            if (cachedProjectTasks != null)
+            {
+                _logger.LogInformation("Tasks for project {ProjectId} found in cache", projectId);
+                return cachedProjectTasks;
+            }
 
             var project = await _unitOfWork.Repository<Project>()
                 .GetById(p => p.Id == projectId)
@@ -139,7 +213,10 @@ namespace TMPInfrastructure.Implementations.Projects
                 return null;
             }
 
-            return _mapper.Map<ProjectTasksDto>(project);
+            var projectTasksDto = _mapper.Map<ProjectTasksDto>(project);
+            await _cache.SetAsync(cacheKey, projectTasksDto, TimeSpan.FromMinutes(60));
+
+            return projectTasksDto;
         }
         #endregion
 
@@ -186,6 +263,8 @@ namespace TMPInfrastructure.Implementations.Projects
             var projectDto = _mapper.Map<ProjectDto>(project);
             await _searchService.IndexDocumentAsync(projectDto, "projects");
 
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
+
             _logger.LogInformation("Project {ProjectId} added successfully", project.Id);
             return projectDto;
         }
@@ -227,6 +306,10 @@ namespace TMPInfrastructure.Implementations.Projects
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
+
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectById, project.Id));
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
+
             return true;
         }
 
@@ -257,6 +340,10 @@ namespace TMPInfrastructure.Implementations.Projects
 
             _unitOfWork.Repository<ProjectUser>().Create(projectUser);
             await _unitOfWork.Repository<ProjectUser>().SaveChangesAsync();
+
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectUsers, addProjectUserDto.ProjectId));
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectsByUser, addProjectUserDto.UserId));
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
 
             _logger.LogInformation("User {UserId} added to project {ProjectId} successfully", addProjectUserDto.UserId, addProjectUserDto.ProjectId);
             return true;
@@ -311,6 +398,10 @@ namespace TMPInfrastructure.Implementations.Projects
 
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
 
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectTeams, project.Id));
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectUsers, project.Id));
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
+
             _logger.LogInformation("Team {TeamId} assigned to project {ProjectId} successfully", manageProjectTeamDto.TeamId, manageProjectTeamDto.ProjectId);
             return true;
         }
@@ -343,6 +434,9 @@ namespace TMPInfrastructure.Implementations.Projects
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
             await _searchService.IndexDocumentAsync(_mapper.Map<ProjectDto>(project), "projects");
+
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectById, project.Id));
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
 
             _logger.LogInformation("Project {ProjectId} updated successfully", id);
             return true;
@@ -377,6 +471,9 @@ namespace TMPInfrastructure.Implementations.Projects
             _unitOfWork.Repository<ProjectUser>().Update(projectUser);
             await _unitOfWork.Repository<ProjectUser>().SaveChangesAsync();
 
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectUsers, projectId));
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
+
             _logger.LogInformation("User role for user {UserId} updated to {NewRole} in project {ProjectId} successfully", userId, newRole, projectId);
             return true;
         }
@@ -408,6 +505,9 @@ namespace TMPInfrastructure.Implementations.Projects
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
             await _searchService.DeleteDocumentAsync(id.ToString(), "projects");
 
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectById, project.Id));
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
+
             _logger.LogInformation("Project {ProjectId} deleted successfully", id);
             return true;
         }
@@ -437,6 +537,9 @@ namespace TMPInfrastructure.Implementations.Projects
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
+
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectById, project.Id));
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
 
             _logger.LogInformation("Columns removed from project {ProjectId} successfully", removeProjectColumnsDto.ProjectId);
             return true;
@@ -469,6 +572,9 @@ namespace TMPInfrastructure.Implementations.Projects
 
             _unitOfWork.Repository<ProjectUser>().Delete(projectUser);
             await _unitOfWork.Repository<ProjectUser>().SaveChangesAsync();
+
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectUsers, projectId));
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
 
             _logger.LogInformation("User {UserId} removed from project {ProjectId} successfully", userId, projectId);
             return true;
@@ -533,6 +639,9 @@ namespace TMPInfrastructure.Implementations.Projects
 
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
 
+            await _cache.DeleteKeyAsync(string.Format(ProjectsConstants.ProjectTeams, project.Id));
+            await _cache.DeleteKeyAsync(ProjectsConstants.AllProjects);
+
             _logger.LogInformation("Team {TeamId} removed from project {ProjectId} successfully", manageProjectTeamDto.TeamId, manageProjectTeamDto.ProjectId);
             return true;
         }
@@ -543,7 +652,17 @@ namespace TMPInfrastructure.Implementations.Projects
         {
             _logger.LogInformation("Fetching the number of created projects");
 
+            var cacheKey = ProjectsConstants.NumberOfCreatedProjects;
+            var cachedNumberOfProjects = await _cache.GetAsync<int?>(cacheKey);
+            if (cachedNumberOfProjects.HasValue)
+            {
+                _logger.LogInformation("Number of created projects found in cache");
+                return cachedNumberOfProjects.Value;
+            }
+
             var numberOfProjects = await _unitOfWork.Repository<Project>().GetAll().CountAsync();
+            await _cache.SetAsync(cacheKey, numberOfProjects, TimeSpan.FromMinutes(60));
+
             return numberOfProjects;
         }
         #endregion
