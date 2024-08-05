@@ -25,6 +25,11 @@ namespace TMP.Service.Controllers.Tags
         }
 
         #region Read
+        /// <summary>
+        /// Retrieves a list of all tags.
+        /// </summary>
+        /// <returns>200 OK with a list of tags.</returns>
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TagDto>>> GetTags()
         {
@@ -34,6 +39,12 @@ namespace TMP.Service.Controllers.Tags
             return Ok(tags);
         }
 
+        /// <summary>
+        /// Retrieves a tag by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the tag to retrieve.</param>
+        /// <returns>200 OK with the tag details; 404 Not Found if the tag does not exist.</returns>
+        [Authorize]
         [HttpGet("{id:int}")]
         public async Task<ActionResult<TagDto>> GetTag(int id)
         {
@@ -49,6 +60,12 @@ namespace TMP.Service.Controllers.Tags
             return Ok(tag);
         }
 
+        /// <summary>
+        /// Searches for tags based on a search term.
+        /// </summary>
+        /// <param name="searchTerm">The term to search for.</param>
+        /// <returns>200 OK with a list of tags matching the search term.</returns>
+        [Authorize]
         [HttpGet("search")]
         public async Task<ActionResult<IEnumerable<TagDto>>> SearchTags([FromQuery] string searchTerm)
         {
@@ -60,9 +77,14 @@ namespace TMP.Service.Controllers.Tags
         #endregion
 
         #region Create
+        /// <summary>
+        /// Adds a new tag.
+        /// </summary>
+        /// <param name="newTag">The details of the tag to add.</param>
+        /// <returns>The created tag.</returns>
         [Authorize]
         [HttpPost]
-        public async Task<ActionResult<TagDto>> AddTag(AddTagDto newTag)
+        public async Task<ActionResult<TagDto>> AddTag([FromBody] AddTagDto newTag)
         {
             _logger.LogInformation("Adding new tag");
 
@@ -72,9 +94,15 @@ namespace TMP.Service.Controllers.Tags
         #endregion
 
         #region Update
+        /// <summary>
+        /// Updates an existing tag.
+        /// </summary>
+        /// <param name="id">The ID of the tag to update.</param>
+        /// <param name="updatedTag">The updated tag details.</param>
+        /// <returns>No content if successful, otherwise a not found response.</returns>
         [Authorize]
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateTag(int id, AddTagDto updatedTag)
+        public async Task<IActionResult> UpdateTag(int id, [FromBody] AddTagDto updatedTag)
         {
             _logger.LogInformation("Updating tag with ID: {TagId}", id);
 
@@ -90,6 +118,11 @@ namespace TMP.Service.Controllers.Tags
         #endregion
 
         #region Delete
+        /// <summary>
+        /// Deletes a tag by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the tag to delete.</param>
+        /// <returns>204 No Content if the deletion is successful; 404 Not Found if the tag does not exist.</returns>
         [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteTag(int id)

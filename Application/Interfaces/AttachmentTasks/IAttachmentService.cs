@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using TMPApplication.DTOs.AtachmentDtos;
 using TMPDomain.Entities;
 
-namespace TMPApplication.AttachmentTasks
+namespace TMPApplication.Interfaces.AttachmentTasks
 {
     public interface IAttachmentService
     {

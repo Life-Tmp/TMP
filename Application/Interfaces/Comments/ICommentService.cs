@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using TMP.Application.DTOs.CommentDtos;
 
-namespace TMP.Application.Comments
+namespace TMPApplication.Interfaces.Comments
 {
     public interface ICommentService
     {

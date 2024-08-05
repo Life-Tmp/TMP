@@ -10,8 +10,6 @@ namespace TMPDomain.Validations
     {
         public TaskValidator()
         {
-            RuleFor(x => x.Id)
-                .GreaterThan(0).WithMessage("Id must be greater than 0.");
 
             RuleFor(x => x.Title)
                 .NotEmpty().WithMessage("Title is required.")
@@ -40,10 +38,6 @@ namespace TMPDomain.Validations
 
             RuleFor(x => x.ProjectId)
                 .GreaterThan(0).WithMessage("ProjectId must be greater than 0.");
-
-            RuleFor(x => x.Project)
-                .NotNull().WithMessage("Project cannot be null.");
-
         }
     }
 }

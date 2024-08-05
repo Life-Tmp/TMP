@@ -7,6 +7,9 @@
     <StartupObject>TMP.Service.Program</StartupObject>
     <AssemblyName>TMP$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>TMP$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+
+	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+	  <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 	<PropertyGroup>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>

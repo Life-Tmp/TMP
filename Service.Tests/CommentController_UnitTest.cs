@@ -4,11 +4,11 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
 using TMP.Application.DTOs.CommentDtos;
-using TMP.Application.Comments;
 using TMPService.Controllers.Comments;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
+using TMPApplication.Interfaces.Comments;
 
 namespace TMP.Service.Tests
 {

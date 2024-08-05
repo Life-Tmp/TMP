@@ -14,9 +14,9 @@ using System.Security.Claims;
 using System.Text;
 using TMP.Application.Interfaces;
 using TMPApplication.DTOs.UserDtos;
-using TMPApplication.UserTasks;
 using User = TMPDomain.Entities.User;
 using TMPDomain.HelperModels;
+using TMPApplication.Interfaces.UserTasks;
 
 namespace TMPInfrastructure.Implementations
 {

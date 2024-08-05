@@ -5,15 +5,14 @@ using AutoMapper;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using TMP.Application.Comments;
 using TMP.Application.DTOs.CommentDtos;
 using TMP.Application.Interfaces;
+using TMPDomain.Entities;
 using TMP.Application.Hubs;
 using TaskEntity = TMPDomain.Entities.Task;
 using Amazon.Runtime.Internal.Util;
 using TMPApplication.Interfaces;
-using FluentValidation;
-using TMPDomain.Entities;
+using TMPApplication.Interfaces.Comments;
 
 namespace TMP.Infrastructure.Implementations
 {
@@ -23,23 +22,15 @@ namespace TMP.Infrastructure.Implementations
         private readonly IMapper _mapper;
         private readonly IHubContext<CommentHub> _commentHubContext;
         private readonly ILogger<CommentService> _logger;
-        private readonly IValidator<Comment> _commentValidator;
         private readonly ICacheService _cache;
 
-        public CommentService(
-            IUnitOfWork unitOfWork,
-            IMapper mapper,
-            IHubContext<CommentHub> commentHubContext,
-            ILogger<CommentService> logger,
-            IValidator<Comment> commentValidator,
-            ICacheService cache)
+        public CommentService(IUnitOfWork unitOfWork, IMapper mapper, IHubContext<CommentHub> commentHubContext, ILogger<CommentService> logger, ICacheService cache)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _commentHubContext = commentHubContext;
             _logger = logger;
             _cache = cache;
-            _commentValidator = commentValidator;
         }
 
         #region Read
@@ -96,14 +87,6 @@ namespace TMP.Infrastructure.Implementations
             comment.UserId = userId;
             comment.CreatedAt = DateTime.UtcNow;
 
-            // Validate the comment
-            var validationResult = await _commentValidator.ValidateAsync(comment);
-            if (!validationResult.IsValid)
-            {
-                _logger.LogWarning("Validation failed for comment: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-                throw new ValidationException(validationResult.Errors);
-            }
-
             _unitOfWork.Repository<Comment>().Create(comment);
             await _unitOfWork.Repository<Comment>().SaveChangesAsync();
 
@@ -134,14 +117,6 @@ namespace TMP.Infrastructure.Implementations
             }
 
             _mapper.Map(updatedComment, comment);
-
-            // Validate the updated comment
-            var validationResult = await _commentValidator.ValidateAsync(comment);
-            if (!validationResult.IsValid)
-            {
-                _logger.LogWarning("Validation failed for updated comment: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-                throw new ValidationException(validationResult.Errors);
-            }
 
             _unitOfWork.Repository<Comment>().Update(comment);
             await _unitOfWork.Repository<Comment>().SaveChangesAsync();

@@ -12,6 +12,6 @@ public class ColumnValidator : AbstractValidator<Column>
     {
         RuleFor(column => column.Name)
             .NotEmpty().WithMessage("Column name is required.")
-            .MaximumLength(255).WithMessage("Column name cannot exceed 255 characters.");
+            .MaximumLength(20).WithMessage("Column name cannot exceed 20 characters.");
     }
 }

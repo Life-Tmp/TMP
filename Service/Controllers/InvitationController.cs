@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using TMPApplication.Interfaces.Invitations;
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TMPService.Controllers
 {
@@ -20,6 +21,13 @@ namespace TMPService.Controllers
         }
 
         #region Read
+
+        /// <summary>
+        /// Accepts an invitation using a token.
+        /// </summary>
+        /// <param name="token">The invitation token.</param>
+        /// <returns>200 OK if the invitation is accepted; 400 Bad Request if there is an error.</returns>
+        [Authorize]
         [HttpGet("accept")]
         public async Task<IActionResult> AcceptInvitation(string token)
         {
@@ -37,9 +45,18 @@ namespace TMPService.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
         #endregion
 
         #region Create
+
+        /// <summary>
+        /// Creates an invitation to a project.
+        /// </summary>
+        /// <param name="projectId">The ID of the project.</param>
+        /// <param name="email">The email address to send the invitation to.</param>
+        /// <returns>200 OK if the invitation is created successfully; 400 Bad Request if there is an error.</returns>
+        [Authorize]
         [HttpPost("to-project")]
         public async Task<IActionResult> CreateInvitationAsync(int projectId, string email)
         {
@@ -57,6 +74,7 @@ namespace TMPService.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
         #endregion
     }
 }

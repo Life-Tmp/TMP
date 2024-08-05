@@ -22,6 +22,11 @@ namespace TMPService.Controllers.Subtasks
         }
 
         #region Read
+        /// <summary>
+        /// Retrieves a list of all subtasks.
+        /// </summary>
+        /// <returns>200 OK with a list of subtasks.</returns>
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<SubtaskDto>>> GetSubtasks()
         {
@@ -30,6 +35,12 @@ namespace TMPService.Controllers.Subtasks
             return Ok(allSubtasks);
         }
 
+        /// <summary>
+        /// Retrieves a subtask by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the subtask to retrieve.</param>
+        /// <returns>200 OK with the subtask details; 404 Not Found if the subtask does not exist.</returns>
+        [Authorize]
         [HttpGet("{id:int}")]
         public async Task<ActionResult<SubtaskDto>> GetSubtask(int id)
         {
@@ -47,6 +58,11 @@ namespace TMPService.Controllers.Subtasks
         #endregion
 
         #region Create
+        /// <summary>
+        /// Adds a new subtask.
+        /// </summary>
+        /// <param name="newSubtask">The details of the subtask to add.</param>
+        /// <returns>The created subtask.</returns>
         [Authorize]
         [HttpPost]
         public async Task<ActionResult<SubtaskDto>> AddSubtask([FromBody] AddSubtaskDto newSubtask)
@@ -67,6 +83,12 @@ namespace TMPService.Controllers.Subtasks
         #endregion
 
         #region Update
+        /// <summary>
+        /// Updates an existing subtask.
+        /// </summary>
+        /// <param name="id">The ID of the subtask to update.</param>
+        /// <param name="updatedSubtask">The updated subtask details.</param>
+        /// <returns>200 OK if the update is successful; 404 Not Found if the subtask does not exist.</returns>
         [Authorize]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateSubtask(int id, [FromBody] UpdateSubtaskDto updatedSubtask)
@@ -80,9 +102,15 @@ namespace TMPService.Controllers.Subtasks
                 return NotFound(new { Message = "Subtask not found" });
             }
 
+            _logger.LogInformation("Subtask with ID: {SubtaskId} updated successfully", id);
             return Ok(new { Message = "Subtask updated successfully" });
         }
 
+        /// <summary>
+        /// Updates the completion status of a subtask.
+        /// </summary>
+        /// <param name="dto">The completion status details.</param>
+        /// <returns>200 OK if the update is successful; 400 Bad Request if the update fails.</returns>
         [Authorize]
         [HttpPatch("update-completion")]
         public async Task<IActionResult> UpdateSubtaskCompletion([FromBody] UpdateSubtaskCompletionDto dto)
@@ -106,6 +134,12 @@ namespace TMPService.Controllers.Subtasks
         #endregion
 
         #region Delete
+        /// <summary>
+        /// Deletes a subtask by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the subtask to delete.</param>
+        /// <returns>204 No Content if the deletion is successful; 404 Not Found if the subtask does not exist.</returns>
+        [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteSubtask(int id)
         {
@@ -118,6 +152,7 @@ namespace TMPService.Controllers.Subtasks
                 return NotFound();
             }
 
+            _logger.LogInformation("Subtask with ID: {SubtaskId} deleted successfully", id);
             return NoContent();
         }
         #endregion

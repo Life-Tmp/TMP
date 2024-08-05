@@ -22,6 +22,11 @@ namespace TMP.Service.Controllers.ContactForms
         }
 
         #region Read
+        /// <summary>
+        /// Retrieves a list of all contact forms.
+        /// </summary>
+        /// <returns>200 OK with a list of contact forms.</returns>
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ContactFormDto>>> GetContactForms()
         {
@@ -30,6 +35,11 @@ namespace TMP.Service.Controllers.ContactForms
             return Ok(contactForms);
         }
 
+        /// <summary>
+        /// Retrieves a contact form by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the contact form to retrieve.</param>
+        /// <returns>200 OK with the contact form details; 404 Not Found if the contact form does not exist.</returns>
         [HttpGet("{id:int}")]
         [Authorize(Roles = "admin")]
         public async Task<ActionResult<ContactFormDto>> GetContactForm(int id)
@@ -47,8 +57,14 @@ namespace TMP.Service.Controllers.ContactForms
         #endregion
 
         #region Create
+        /// <summary>
+        /// Adds a new contact form.
+        /// </summary>
+        /// <param name="newContactForm">The details of the contact form to add.</param>
+        /// <returns>The created contact form.</returns>
+        [AllowAnonymous]
         [HttpPost]
-        public async Task<ActionResult<ContactFormDto>> AddContactForm(AddContactFormDto newContactForm)
+        public async Task<ActionResult<ContactFormDto>> AddContactForm([FromBody] AddContactFormDto newContactForm)
         {
             _logger.LogInformation("Adding new contact form");
             var contactForm = await _contactFormService.AddContactFormAsync(newContactForm);
@@ -57,6 +73,11 @@ namespace TMP.Service.Controllers.ContactForms
         #endregion
 
         #region Update
+        /// <summary>
+        /// Responds to a contact form.
+        /// </summary>
+        /// <param name="respondToContactFormDto">The response details.</param>
+        /// <returns>200 OK if the response is sent successfully; 404 Not Found if the contact form does not exist.</returns>
         [Authorize(Roles = "admin")]
         [HttpPost("respond")]
         public async Task<IActionResult> RespondToContactForm([FromBody] RespondToContactFormDto respondToContactFormDto)
@@ -74,6 +95,12 @@ namespace TMP.Service.Controllers.ContactForms
         #endregion
 
         #region Delete
+
+        /// <summary>
+        /// Deletes a contact form by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the contact form to delete.</param>
+        /// <returns>204 No Content if the deletion is successful; 404 Not Found if the contact form does not exist.</returns>
         [Authorize(Roles = "admin")]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteContactForm(int id)

@@ -6,9 +6,6 @@ namespace TMPDomain.Validations
 	{
 		public ReminderValidator()
 		{
-			RuleFor(x => x.Id)
-				.GreaterThan(0).WithMessage("Id must be greater than 0.");
-
 			RuleFor(x => x.Description)
 				.NotEmpty().WithMessage("Description is required.");
 

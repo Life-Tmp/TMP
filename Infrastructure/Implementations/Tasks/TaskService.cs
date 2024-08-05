@@ -30,20 +30,19 @@ namespace TMPInfrastructure.Implementations.Tasks
         private readonly ICacheService _cache;
         private readonly ISearchService<TaskDto> _searchService;
         private readonly ILogger<TaskService> _logger;
-        private readonly IGoogleCalendarService _googleCalendarService;
+        //private readonly IGoogleCalendarService _googleCalendarService;
         private readonly IValidator<Task> _taskValidator;
         private readonly IValidator<TaskDuration> _taskDurationValidator;
 
         public TaskService(IUnitOfWork unitOfWork,
-                           IMapper mapper,
-                           INotificationService notificationService,
-                           IHubContext<NotificationHub> notificationHub,
-                           ICacheService cache,
-                           ISearchService<TaskDto> searchService,
-                           ILogger<TaskService> logger,
-                           IGoogleCalendarService googleCalendarService,
-                           IValidator<Task> taskValidator,
-                           IValidator<TaskDuration> taskDurationValidator)
+            IMapper mapper,
+            INotificationService notificationService,
+            IHubContext<NotificationHub> notificationHub,
+            ICacheService cache,
+            ISearchService<TaskDto> searchService,
+            ILogger<TaskService> logger,
+            IValidator<TaskDuration> taskDurationValidator,
+            IValidator<Task> taskValidator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -52,9 +51,9 @@ namespace TMPInfrastructure.Implementations.Tasks
             _cache = cache;
             _searchService = searchService;
             _logger = logger;
-            _googleCalendarService = googleCalendarService;
-            _taskValidator = taskValidator;
             _taskDurationValidator = taskDurationValidator;
+            _taskValidator = taskValidator;
+            //_googleCalendarService = googleCalendarService;
         }
 
         #region Read
@@ -560,45 +559,48 @@ namespace TMPInfrastructure.Implementations.Tasks
             _logger.LogInformation("User with ID: {UserId} removed from task with ID: {TaskId} successfully", user.Id, task.Id);
             return result;
         }
+        #endregion
 
-        public async Task<Event> AddTaskAsEventInCalendar(int taskId)
-        {
-            var taskToAdd = await _unitOfWork.Repository<Task>().GetById(x => x.Id == taskId).Include(x => x.Project).FirstOrDefaultAsync();
-            if (taskToAdd == null)
-                throw new Exception("Task not found");
+        #region CalendarAPI
 
-            if (taskToAdd.Project == null || string.IsNullOrEmpty(taskToAdd.Project.CalendarId))
-            {
-                throw new Exception($"The project with ID {taskToAdd.ProjectId} does not have a calendar.");
-            }
-
-            var calendarEvent = new Event
-            {
-                Summary = taskToAdd.Title,
-                Description = taskToAdd.Description,
-                Start = new EventDateTime
+        /*        public async Task<Event> AddTaskAsEventInCalendar(int taskId)
                 {
-                    DateTime = taskToAdd.DueDate,
-                    TimeZone = "Europe/Tirane"
-                },
-                End = new EventDateTime
-                {
-                    DateTimeDateTimeOffset = taskToAdd.DueDate,
-                    TimeZone = "Europe/Tirane"
-                }
-            };
+                    var taskToAdd = await _unitOfWork.Repository<Task>().GetById(x => x.Id == taskId).Include(x => x.Project).FirstOrDefaultAsync();
+                    if (taskToAdd == null)
+                        throw new Exception("Task not found");
 
-            try
-            {
-                // Add the event to the specified calendar
-                var createdEvent = await _googleCalendarService.CreateEventAsync(taskToAdd.Project.CalendarId, calendarEvent);
-                return createdEvent;
-            }
-            catch (Exception ex)
-            {
-                throw new ApplicationException($"Error adding task {taskId} as event in Google Calendar.", ex);
-            }
-        }
+                    if (taskToAdd.Project == null || string.IsNullOrEmpty(taskToAdd.Project.CalendarId))
+                    {
+                        throw new Exception($"The project with ID {taskToAdd.ProjectId} does not have a calendar.");
+                    }
+
+                    var calendarEvent = new Event
+                    {
+                        Summary = taskToAdd.Title,
+                        Description = taskToAdd.Description,
+                        Start = new EventDateTime
+                        {
+                            DateTime = taskToAdd.DueDate,
+                            TimeZone = "Europe/Tirane"
+                        },
+                        End = new EventDateTime
+                        {
+                            DateTimeDateTimeOffset = taskToAdd.DueDate,
+                            TimeZone = "Europe/Tirane"
+                        }
+                    };
+
+                    try
+                    {
+                        // Add the event to the specified calendar
+                        var createdEvent = await _googleCalendarService.CreateEventAsync(taskToAdd.Project.CalendarId, calendarEvent);
+                        return createdEvent;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new ApplicationException($"Error adding task {taskId} as event in Google Calendar.", ex);
+                    }
+                }*/
         #endregion
     }
 }

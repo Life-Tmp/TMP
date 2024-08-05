@@ -24,24 +24,17 @@ namespace TMPInfrastructure.Implementations.Projects
         private readonly IValidator<Project> _projectValidator;
         private readonly IValidator<Column> _columnValidator;
         private readonly ICacheService _cache;
-        private readonly IGoogleCalendarService _googleCalendarService;
+        //private readonly IGoogleCalendarService _googleCalendarService;
 
-        public ProjectService(
-            IUnitOfWork unitOfWork,
-            IMapper mapper,
-            ISearchService<ProjectDto> searchService,
-            ILogger<ProjectService> logger,
-            IValidator<Project> projectValidator,
-            IValidator<Column> columnValidator,
-            IGoogleCalendarService googleCalendarService,
-            ICacheService cache)
+        public ProjectService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<ProjectDto> searchService, ILogger<ProjectService> logger, ICacheService cache, IValidator<Project> projectValidator, IValidator<Column> columnValidator)
+
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _searchService = searchService;
             _logger = logger;
             _cache = cache;
-            _googleCalendarService = googleCalendarService;
+            //_googleCalendarService = googleCalendarService;
             _projectValidator = projectValidator;
             _columnValidator = columnValidator;
         }
@@ -708,27 +701,29 @@ namespace TMPInfrastructure.Implementations.Projects
         }
         #endregion
 
-        public async Task<bool> AddProjectCalendar(int projectId)
+        #region #CalendarApi
+        /*public async Task<bool> AddProjectCalendar(int projectId)
         {
             try
             {
                 var project = await _unitOfWork.Repository<Project>().GetById(x => x.Id == projectId).FirstOrDefaultAsync();
 
-                if (project == null)
-                {
-                    _logger.LogWarning($"Project with ID {projectId} not found");
-                    return false;
-                }
+                        if (project == null)
+                        {
+                            _logger.LogWarning($"Project with ID {projectId} not found");
+                            return false;
+                        }
 
-                var calendarAdded = await _googleCalendarService.CreateCalendarAsync(project.Name, project.Description);
-                _logger.LogInformation($"Calendar '{calendarAdded.Summary}' created successfully for project ID {projectId}");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error creating calendar for project ID {projectId}.");
-                throw new ApplicationException($"Error creating calendar for project ID {projectId}.", ex);
-            }
-        }
+                        var calendarAdded = await _googleCalendarService.CreateCalendarAsync(project.Name, project.Description);
+                        _logger.LogInformation($"Calendar '{calendarAdded.Summary}' created successfully for project ID {projectId}");
+                        return true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error creating calendar for project ID {projectId}.");
+                        throw new ApplicationException($"Error creating calendar for project ID {projectId}.", ex);
+                    }
+                }*/
+        #endregion
     }
 }
