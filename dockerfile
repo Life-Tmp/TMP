@@ -3,6 +3,7 @@ USER app
 WORKDIR /app
 EXPOSE 7001
 EXPOSE 80
+EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
