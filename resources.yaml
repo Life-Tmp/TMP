@@ -1,6 +1,6 @@
 ---
 apiVersion: networking.gke.io/v1beta1
-kind: FrontendConfig
+kind: BackendConfig
 metadata:
   name: back-demo
 spec:
@@ -28,7 +28,7 @@ kind: Service
 metadata:
   name: back-demo
 spec:
-  type: NodePort
+  type: EntryPoint
   selector:
     app: back-demo
   ports:
