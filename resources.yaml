@@ -47,6 +47,6 @@ spec:
     spec:
       containers:
       - name: back-demo
-        image: europe-central2-docker.pkg.dev/GOOGLE_PROJECT/docker-images/tma-back-image:IMAGE_TAG
+        image: europe-central2-docker.pkg.dev/GOOGLE_PROJECT/docker-images/tma_back_image:IMAGE_TAG
         ports:
         - containerPort: 7001
