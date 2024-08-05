@@ -104,7 +104,7 @@ namespace TMPService.Controllers.Projects
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<ProjectDto>>> SearchProjects([FromQuery] string query)
+        public async Task<IActionResult> SearchProjects([FromQuery] string query)
         {
             _logger.LogInformation("Searching projects with query: {Query}", query);
             var projects = await _searchService.SearchDocumentAsync(query, "projects");
@@ -249,6 +249,16 @@ namespace TMPService.Controllers.Projects
             if (!result) return BadRequest();
 
             return Ok("Team removed from project successfully.");
+        }
+
+        [HttpPost("calendar/add")]
+        [Authorize]
+        public async Task<IActionResult> AddCalendarToProject(int projectId)
+        {
+            var isCalendarAdded = await _projectService.AddProjectCalendar(projectId);
+            if (!isCalendarAdded) return BadRequest();
+
+            return Ok("Calendar added successfully");
         }
         #endregion
     }

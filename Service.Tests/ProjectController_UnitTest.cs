@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Amazon.Runtime.Internal.Util;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
 using TMP.Application.DTOs.ProjectDtos;
@@ -18,12 +20,16 @@ namespace TMP.Tests
         private readonly ProjectController _controller;
         private readonly Mock<IProjectService> _projectServiceMock;
         private readonly Mock<ISearchService<ProjectDto>> _searchServiceMock;
+        private readonly Mock<ILogger<ProjectController>> _logger;
         private readonly string _userId;
         public ProjectController_UnitTest()
         {            
             _projectServiceMock = new Mock<IProjectService>();
             _searchServiceMock = new Mock<ISearchService<ProjectDto>>();
-            _controller = new ProjectController(_projectServiceMock.Object, _searchServiceMock.Object);
+            _logger = new Mock<ILogger<ProjectController>>();
+            _controller = new ProjectController(_projectServiceMock.Object,
+                _searchServiceMock.Object,
+                _logger.Object);
             _userId = "user1";
             _controller.ControllerContext = new ControllerContext
             {

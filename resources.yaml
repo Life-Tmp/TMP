@@ -1,12 +1,4 @@
 ---
-apiVersion: networking.gke.io/v1beta1
-kind: FrontendConfig
-metadata:
-  name: back-demo
-spec:
-  redirectToHttps:
-    enabled: true
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -30,7 +22,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: demo
+    app: back-demo
   ports:
   - protocol: TCP
     port: 80

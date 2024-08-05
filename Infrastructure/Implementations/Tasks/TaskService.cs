@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Google.Apis.Calendar.v3.Data;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ using TMPApplication.Notifications;
 using TMPCommon.Constants;
 using TMPDomain.Entities;
 using TMPDomain.Enumerations;
+using TMPInfrastructure.Implementations.CalendarApi;
 using Task = TMPDomain.Entities.Task;
 
 namespace TMPInfrastructure.Implementations.Tasks
@@ -26,6 +28,7 @@ namespace TMPInfrastructure.Implementations.Tasks
         private readonly ICacheService _cache;
         private readonly ISearchService<TaskDto> _searchService;
         private readonly ILogger<TaskService> _logger;
+        private readonly IGoogleCalendarService _googleCalendarService;
 
         public TaskService(IUnitOfWork unitOfWork,
             IMapper mapper,
@@ -33,7 +36,8 @@ namespace TMPInfrastructure.Implementations.Tasks
             IHubContext<NotificationHub> notificationHub,
             ICacheService cache,
             ISearchService<TaskDto> searchService,
-            ILogger<TaskService> logger)
+            ILogger<TaskService> logger,
+            IGoogleCalendarService googleCalendarService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -42,6 +46,7 @@ namespace TMPInfrastructure.Implementations.Tasks
             _cache = cache;
             _searchService = searchService;
             _logger = logger;
+            _googleCalendarService = googleCalendarService;
         }
 
         #region Read
@@ -489,6 +494,45 @@ namespace TMPInfrastructure.Implementations.Tasks
 
             _logger.LogInformation("User with ID: {UserId} removed from task with ID: {TaskId} successfully", user.Id, task.Id);
             return result;
+        }
+
+        public async Task<Event> AddTaskAsEventInCalendar(int taskId)
+        {
+            var taskToAdd = await _unitOfWork.Repository<Task>().GetById(x => x.Id == taskId).Include(x => x.Project).FirstOrDefaultAsync();
+            if (taskToAdd == null)
+                throw new Exception("Task not found");
+
+            if (taskToAdd.Project == null || string.IsNullOrEmpty(taskToAdd.Project.CalendarId))
+            {
+                throw new Exception($"The project with ID {taskToAdd.ProjectId} does not have a calendar.");
+            }
+
+            var calendarEvent = new Event
+            {
+                Summary = taskToAdd.Title,
+                Description = taskToAdd.Description,
+                Start = new EventDateTime
+                {
+                    DateTime = taskToAdd.DueDate,
+                    TimeZone = "Europe/Tirane"
+                },
+                End = new EventDateTime
+                {
+                    DateTimeDateTimeOffset = taskToAdd.DueDate,
+                    TimeZone = "Europe/Tirane"
+                }
+            };
+
+            try
+            {
+                // Add the event to the specified calendar
+                var createdEvent = await _googleCalendarService.CreateEventAsync(taskToAdd.Project.CalendarId, calendarEvent);
+                return createdEvent;
+            }
+            catch (Exception ex)
+            {
+                throw new ApplicationException($"Error adding task {taskId} as event in Google Calendar.", ex);
+            }
         }
         #endregion
     }
