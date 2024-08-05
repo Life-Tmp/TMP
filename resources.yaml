@@ -2,16 +2,16 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: back-demo
+  name: demo
   annotations:
     kubernetes.io/ingress.class: "gce"
-    kubernetes.io/ingress.global-static-ip-name: back-demo
-    networking.gke.io/v1beta1.FrontendConfig: back-demo
-    networking.gke.io/managed-certificates: back-demo
+    kubernetes.io/ingress.global-static-ip-name: demo
+    networking.gke.io/v1beta1.FrontendConfig: demo
+    networking.gke.io/managed-certificates: demo
 spec:
   defaultBackend:
     service:
-      name: back-demo
+      name: demo
       port:
         number: 80
 ---
