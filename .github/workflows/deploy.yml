@@ -10,7 +10,6 @@ jobs:
     env:
       
       IMAGE_TAG: ${{ github.sha }}
-      GCP_TF_STATE_BUCKET_NAME: ${{ secrets.GCP_TF_STATE_BUCKET }}
     steps:
 
     - name: code checkout
