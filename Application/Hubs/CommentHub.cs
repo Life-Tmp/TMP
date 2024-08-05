@@ -5,17 +5,25 @@ namespace TMP.Application.Hubs
 {
     public class CommentHub : Hub
     {
-        public async Task SendComment(string content, int taskId)
+        public async Task SendComment(string content, int taskId, string projectId)
         {
-            // Create a comment object with the content and taskId
             var comment = new
             {
                 Content = content,
                 TaskId = taskId
             };
 
-            // Broadcast the comment to all connected clients
-            await Clients.All.SendAsync("ReceiveComment", comment);
+            await Clients.Group(projectId).SendAsync("ReceiveComment", comment);
+        }
+
+        public async Task JoinProjectGroup(string projectId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, projectId);
+        }
+
+        public async Task LeaveProjectGroup(string projectId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, projectId);
         }
     }
 }
