@@ -24,7 +24,18 @@ namespace TMPService.Controllers
         }
 
         #region Create
+
+        /// <summary>
+        /// Uploads a file attachment for a specified task.
+        /// </summary>
+        /// <param name="file">The file to upload.</param>
+        /// <param name="taskId">The ID of the task to associate with the attachment.</param>
+        /// <returns>An IActionResult indicating the result of the upload operation</returns>
+        /// <response code="200">File attachment uploaded successfully</response>
+        /// <response code="400">File is empty or not provided</response>
+        /// <response code="500">An unexpected error occurred</response> 
         [HttpPost("upload")]
+        [Authorize]
         public async Task<IActionResult> UploadFileAttachment(IFormFile file, int taskId)
         {
             _logger.LogInformation("Uploading file attachment for task ID: {TaskId}", taskId);
@@ -55,7 +66,15 @@ namespace TMPService.Controllers
         #endregion
 
         #region Read
+        /// <summary>
+        /// Retrieves all file attachments associated with a specific task.
+        /// </summary>
+        /// <param name="id">The ID of the task to retrieve attachments for.</param>
+        /// <returns>A list of attachments associated with the specified task.</returns>
+        /// <response code="200">Returns the list of attachments.</response>
+        /// <response code="404">No attachments found for the specified task.</response>
         [HttpGet("task/{id}")]
+        [Authorize]
         public async Task<IActionResult> GetAllTaskAttachments(int id)
         {
             var attachments = await _attachmentService.GetAttachmentsAsync(id);
@@ -66,7 +85,16 @@ namespace TMPService.Controllers
 
         }
 
+        /// <summary>
+        /// Downloads a file attachment by its ID.
+        /// </summary>
+        /// <param name="attachmentId">The ID of the attachment to download.</param>
+        /// <returns>The file content of the attachment.</returns>
+        /// <response code="200">File attachment downloaded successfully.</response>
+        /// <response code="404">File attachment not found.</response>
+        /// <response code="500">An unexpected error occurred.</response>
         [HttpGet("download")]
+        [Authorize]
         public async Task<IActionResult> DownloadFileAttachment(int attachmentId)
         {
             _logger.LogInformation("Downloading file attachment with ID: {AttachmentId}", attachmentId);
@@ -98,7 +126,16 @@ namespace TMPService.Controllers
         #endregion
 
         #region Delete
+        /// <summary>
+        /// Removes a file attachment by its ID.
+        /// </summary>
+        /// <param name="attachmentId">The ID of the attachment to remove.</param>
+        /// <returns>An IActionResult indicating the result of the delete operation.</returns>
+        /// <response code="200">File attachment removed successfully, you did it</response>
+        /// <response code="404">File attachment not found</response>
+        /// <response code="500">An unexpected error occurred</response>
         [HttpDelete("delete")]
+        [Authorize]
         public async Task<IActionResult> RemoveFileAttachment(int attachmentId)
         {
             _logger.LogInformation("Removing file attachment with ID: {AttachmentId}", attachmentId);

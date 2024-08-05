@@ -30,7 +30,12 @@ namespace TMPService.Controllers.Tasks
         }
 
         #region Read
+        /// <summary>
+        /// Retrieves a list of all tasks.
+        /// </summary>
+        /// <returns>200 OK with a list of tasks.</returns>
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasks()
         {
             _logger.LogInformation("Fetching tasks");
@@ -39,7 +44,13 @@ namespace TMPService.Controllers.Tasks
             return Ok(tasks);
         }
 
+        /// <summary>
+        /// Retrieves a task by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the task to retrieve.</param>
+        /// <returns>200 OK with the task details; 404 Not Found if the task does not exist.</returns>
         [HttpGet("{id:int}")]
+        [Authorize]
         public async Task<ActionResult<TaskDto>> GetTask(int id)
         {
             _logger.LogInformation("Fetching task with ID: {TaskId}", id);
@@ -54,6 +65,11 @@ namespace TMPService.Controllers.Tasks
             return Ok(task);
         }
 
+        /// <summary>
+        /// Retrieves the users assigned to a specific task.
+        /// </summary>
+        /// <param name="id">The ID of the task.</param>
+        /// <returns>200 OK with a list of assigned users; 404 Not Found if no users are assigned.</returns>
         [Authorize]
         [HttpGet("{id}/assigned-users")]
         public async Task<ActionResult<IEnumerable<UserDetailsDto>>> GetAssignedUsers(int id)
@@ -70,6 +86,10 @@ namespace TMPService.Controllers.Tasks
             return Ok(users);
         }
 
+        /// <summary>
+        /// Retrieves the tasks assigned to the currently logged-in user.
+        /// </summary>
+        /// <returns>200 OK with a list of tasks assigned to the user; 401 Unauthorized if the user is not authenticated.</returns>
         [Authorize]
         [HttpGet("my-tasks")]
         public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasksByUser()
@@ -87,6 +107,11 @@ namespace TMPService.Controllers.Tasks
             return Ok(tasks);
         }
 
+        /// <summary>
+        /// Retrieves the total time spent on a task by the currently logged-in user.
+        /// </summary>
+        /// <param name="id">The ID of the task.</param>
+        /// <returns>200 OK with total time spent; 401 Unauthorized if the user is not authenticated.</returns>
         [Authorize]
         [HttpGet("{id}/work-time")]
         public async Task<ActionResult<WorkTimeDto>> GetTotalTimeSpent(int id)
@@ -104,6 +129,11 @@ namespace TMPService.Controllers.Tasks
             return Ok(workTimeDto);
         }
 
+        /// <summary>
+        /// Retrieves the time spent on a task by all users.
+        /// </summary>
+        /// <param name="id">The ID of the task.</param>
+        /// <returns>200 OK with time spent by users; 401 Unauthorized if the user is not authenticated; 403 Forbidden if an error occurs.</returns>
         [Authorize]
         [HttpGet("{id:int}/time-spent-by-users")]
         public async Task<ActionResult<IEnumerable<UserTimeSpentDto>>> GetTimeSpentByUsers(int id)
@@ -129,7 +159,13 @@ namespace TMPService.Controllers.Tasks
             }
         }
 
+        /// <summary>
+        /// Retrieves the comments for a task.
+        /// </summary>
+        /// <param name="id">The ID of the task.</param>
+        /// <returns>200 OK with a list of comments; 404 Not Found if no comments are found.</returns>
         [HttpGet("{id}/comments")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<CommentDto>>> GetComments(int id)
         {
             _logger.LogInformation("Fetching comments for task with ID: {TaskId}", id);
@@ -144,7 +180,13 @@ namespace TMPService.Controllers.Tasks
             return Ok(comments);
         }
 
+        /// <summary>
+        /// Retrieves the subtasks for a task.
+        /// </summary>
+        /// <param name="id">The ID of the task.</param>
+        /// <returns>200 OK with a list of subtasks; 404 Not Found if no subtasks are found.</returns>
         [HttpGet("{id}/subtasks")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<SubtaskDto>>> GetSubtasks(int id)
         {
             _logger.LogInformation("Fetching subtasks for task with ID: {TaskId}", id);
@@ -159,7 +201,13 @@ namespace TMPService.Controllers.Tasks
             return Ok(subtasks);
         }
 
+        /// <summary>
+        /// Retrieves the duration of a task.
+        /// </summary>
+        /// <param name="taskid">The ID of the task.</param>
+        /// <returns>200 OK with the duration; 404 Not Found if the task is not done yet or does not exist.</returns>
         [HttpGet("{taskid:int}/duration")]
+        [Authorize]
         public async Task<IActionResult> GetTaskDuration(int taskid)
         {
             _logger.LogInformation("Fetching task duration for task with ID: {TaskId}", taskid);
@@ -180,7 +228,13 @@ namespace TMPService.Controllers.Tasks
             return Ok(duration);
         }
 
+        /// <summary>
+        /// Searches for tasks based on a search term.
+        /// </summary>
+        /// <param name="searchTerm">The term to search for.</param>
+        /// <returns>200 OK with a list of tasks matching the search term.</returns>
         [HttpGet("search")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<TaskDto>>> SearchTasks([FromQuery] string searchTerm)
         {
             _logger.LogInformation("Searching tasks with search term: {SearchTerm}", searchTerm);
@@ -191,8 +245,14 @@ namespace TMPService.Controllers.Tasks
         #endregion
 
         #region Create
-        [Authorize]
+
+        /// <summary>
+        /// Adds a new task.
+        /// </summary>
+        /// <param name="newTask">The details of the task to add.</param>
+        /// <returns>The created task.</returns>
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<TaskDto>> AddTask([FromBody] AddTaskDto newTask)
         {
             var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
@@ -208,8 +268,15 @@ namespace TMPService.Controllers.Tasks
             return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
         }
 
-        [Authorize]
+        /// <summary>
+        /// Assigns a user to a task. Requires authentication.
+        /// </summary>
+        /// <param name="assignUserToTaskDto">DTO containing the task ID and user ID.</param>
+        /// <returns>An IActionResult indicating success or failure.</returns>
+        /// <response code="200">User assigned to task successfully.</response>
+        /// <response code="400">Failed to assign user to task.</response>
         [HttpPost("assign-user")]
+        [Authorize]
         public async Task<IActionResult> AssignUserToTask([FromBody] AssignUserToTaskDto assignUserToTaskDto)
         {
             var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
@@ -233,8 +300,14 @@ namespace TMPService.Controllers.Tasks
         #endregion
 
         #region Update
-        [Authorize]
+
+        /// <summary>
+        /// Updates a task.
+        /// </summary>
+        /// <param name="id">The ID of the task to update.</param>
+        /// <returns>No content if successful, otherwise a bad request.</returns>
         [HttpPut("{id:int}")]
+        [Authorize]
         public async Task<IActionResult> UpdateTask(int id, [FromBody] UpdateTaskDto updatedTask)
         {
             _logger.LogInformation("Updating task with ID: {TaskId}", id);
@@ -249,7 +322,15 @@ namespace TMPService.Controllers.Tasks
             return NoContent();
         }
 
+        /// <summary>
+        /// Updates the status of a specified task. Requires authentication.
+        /// </summary>
+        /// <param name="updateTaskStatusDto">The DTO containing the task ID and the new status for the task.</param>
+        /// <returns>An IActionResult indicating success or failure.</returns>
+        /// <response code="200">Task status updated successfully.</response>
+        /// <response code="404">Task not found or unable to update status.</response>
         [HttpPatch("update-status")]
+        [Authorize]
         public async Task<IActionResult> UpdateStatusOfTask([FromBody] UpdateTaskStatusDto updateTaskStatusDto)
         {
             _logger.LogInformation("Updating status of task with ID: {TaskId} to {Status}", updateTaskStatusDto.TaskId, updateTaskStatusDto.Status);
@@ -269,8 +350,14 @@ namespace TMPService.Controllers.Tasks
             });
         }
 
-        [Authorize]
+        /// <summary>
+        /// Starts a timer for a specified task. Requires authentication.
+        /// </summary>
+        /// <param name="id">The ID of the task to start the timer for.</param>
+        /// <returns>An IActionResult indicating success or failure.</returns>
+        /// <response code="200">Timer started successfully.</response>
         [HttpPost("{id:int}/start-timer")]
+        [Authorize]
         public async Task<IActionResult> StartTimer(int id)
         {
             var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
@@ -286,6 +373,12 @@ namespace TMPService.Controllers.Tasks
             return Ok("Timer started.");
         }
 
+        /// <summary>
+        /// Stops the timer for a specified task. Requires authentication.
+        /// </summary>
+        /// <param name="id">The ID of the task to stop the timer for.</param>
+        /// <returns>An IActionResult indicating success or failure.</returns>
+        /// <response code="200">Timer stopped successfully.</response>
         [Authorize]
         [HttpPost("{id:int}/stop-timer")]
         public async Task<IActionResult> StopTimer(int id)
@@ -305,6 +398,12 @@ namespace TMPService.Controllers.Tasks
         #endregion
 
         #region Delete
+
+        /// <summary>
+        /// Deletes a task by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the task to delete.</param>
+        /// <returns>204 No Content if the deletion is successful; 404 Not Found if the task does not exist.</returns>
         [Authorize]
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteTask(int id)
@@ -321,6 +420,12 @@ namespace TMPService.Controllers.Tasks
             return NoContent();
         }
 
+        /// <summary>
+        /// Removes a user from a specified task. Requires authentication.
+        /// </summary>
+        /// <param name="removeUserFromTaskDto">The DTO containing the task ID and user ID to be removed.</param>
+        /// <returns>An IActionResult indicating success or failure.</returns>
+        /// <response code="200">User removed from task successfully.</response>
         [Authorize]
         [HttpDelete("remove-user")]
         public async Task<IActionResult> RemoveUserFromTask([FromBody] RemoveUserFromTaskDto removeUserFromTaskDto)
@@ -344,6 +449,12 @@ namespace TMPService.Controllers.Tasks
             return Ok("User removed from task successfully.");
         }
 
+        /// <summary>
+        /// Adds a task to the calendar.
+        /// </summary>
+        /// <param name="taskId">The ID of the task to add to the calendar.</param>
+        /// <returns>200 OK if the task is successfully added to the calendar; 400 Bad Request if the task ID is invalid.</returns>
+        [Authorize]
         [HttpPost("add-to-calendar")]
         public async Task<IActionResult> AddTaskToCalendar(int taskId)
         {

@@ -170,24 +170,40 @@ namespace TMPInfrastructure.Implementations.Tasks
 
         public async Task<IEnumerable<CommentDto>> GetCommentsByTaskIdAsync(int taskId)
         {
+            var cacheKey = $"task_{taskId}_comments";
+            var cachedComments = await _cache.GetAsync<IEnumerable<CommentDto>>(cacheKey);
+
+            if (cachedComments != null)
+            {
+                return cachedComments;
+            }
             _logger.LogInformation("Fetching comments for task with ID: {TaskId}", taskId);
 
             var comments = await _unitOfWork.Repository<Comment>()
                 .GetByCondition(c => c.TaskId == taskId)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<CommentDto>>(comments);
+            var mappedComments = _mapper.Map<IEnumerable<CommentDto>>(comments);
+
+            await _cache.SetAsync(cacheKey, mappedComments);
+            return mappedComments;
         }
 
         public async Task<IEnumerable<SubtaskDto>> GetSubtasksByTaskIdAsync(int taskId)
         {
+            var cacheKey = $"task_{taskId}_subtasks";
+            var cachedSubtasks = await _cache.GetAsync<IEnumerable<SubtaskDto>>(cacheKey);
+
             _logger.LogInformation("Fetching subtasks for task with ID: {TaskId}", taskId);
 
             var subtasks = await _unitOfWork.Repository<Subtask>()
                 .GetByCondition(st => st.TaskId == taskId)
                 .ToListAsync();
 
-            return _mapper.Map<IEnumerable<SubtaskDto>>(subtasks);
+            var mappedSubtasks = _mapper.Map<IEnumerable<SubtaskDto>>(subtasks);
+            await _cache.SetAsync(cacheKey, mappedSubtasks);
+
+            return mappedSubtasks;
         }
 
         public async Task<TimeSpan?> GetTaskDurationAsync(int taskId)

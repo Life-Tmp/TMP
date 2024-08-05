@@ -15,6 +15,7 @@ using Task = System.Threading.Tasks.Task;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using Microsoft.AspNetCore.SignalR;
 using TMPApplication.Hubs;
+using TMPDomain.Exceptions;
 
 namespace TMPInfrastructure.Messaging
 {
@@ -69,7 +70,7 @@ namespace TMPInfrastructure.Messaging
 
             if (user == null)
             {
-
+                throw new UserNotFoundException(notification.UserId);
             }
             EmailMessage emaili = new EmailMessage
             {

@@ -2,42 +2,40 @@ using Amazon;
 using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
 using Amazon.S3;
-using Elasticsearch.Net;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Hangfire;
 using Microsoft.OpenApi.Models;
 using Nest;
 using Serilog;
+using Serilog.Sinks.Elasticsearch;
 using StackExchange.Redis;
+using System.Reflection;
 using System.Runtime.Loader;
 using TMP.Application.Comments;
 using TMP.Application.Hubs;
 using TMP.Application.Interfaces;
 using TMP.Application.Interfaces.Tags;
 using TMP.Infrastructure.Implementations;
+using TMP.Infrastructure.Implementations.ContactForms;
 using TMP.Infrastructure.Implementations.Tags;
 using TMP.Persistence;
 using TMP.Service.Helpers;
 using TMPApplication.AttachmentTasks;
 using TMPApplication.Hubs;
 using TMPApplication.Interfaces;
+using TMPApplication.Interfaces.ContactForms;
 using TMPApplication.Interfaces.Invitations;
 using TMPApplication.Interfaces.Reminders;
 using TMPApplication.Interfaces.Subtasks;
 using TMPApplication.Notifications;
 using TMPApplication.UserTasks;
+using TMPDomain.Validations;
 using TMPInfrastructure.Implementations;
 using TMPInfrastructure.Implementations.Notifications;
 using TMPInfrastructure.Implementations.Reminders;
 using TMPInfrastructure.Implementations.Subtasks;
-using TMPApplication.Hubs;
-using TMPApplication.Interfaces.Invitations;
-using FluentValidation;
-using TMPDomain.Validations;
-using FluentValidation.AspNetCore;
 using TMPInfrastructure.Messaging;
-using TMPApplication.Interfaces.ContactForms;
-using TMP.Infrastructure.Implementations.ContactForms;
-using Serilog.Sinks.Elasticsearch;
 
 namespace TMP.Service;
 
@@ -88,6 +86,9 @@ class Program
                     }
                 }
             });
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            c.IncludeXmlComments(xmlPath);
             c.DocumentFilter<LowercaseDocumentFilter>();
             c.OperationFilter<AuthorizeCheckOperationFilter>();
             c.MapType<IFormFile>(() => new OpenApiSchema { Type = "file" });
@@ -142,7 +143,7 @@ class Program
 
 
 
-        builder.Services.AddAutoMapper(assemblies); //CHECK: I think this is better, just need to TEST
+        builder.Services.AddAutoMapper(assemblies);
         var awsOptions = new AWSOptions
         {
             Region = RegionEndpoint.GetBySystemName(builder.Configuration["AWS:Region"]),
@@ -169,7 +170,7 @@ class Program
 
         #endregion
 
-        builder.Services.AddHttpClient(); //TODO: Chechk again
+        builder.Services.AddHttpClient();
 
         builder.Services.AddDefaultAWSOptions(awsOptions);
         builder.Services.AddAWSService<IAmazonS3>();
@@ -183,7 +184,7 @@ class Program
         builder.Services.AddScoped<ICommentService, CommentService>();
         builder.Services.AddScoped<ITagService, TagService>();
         builder.Services.AddScoped<ISubtaskService, SubtaskService>();
-
+        builder.Services.AddScoped<IReminderService, ReminderService>();
 
 
         #region Hosted
@@ -201,12 +202,10 @@ class Program
         builder.Services.AddHostedService<ConsumerHostedService>();
 
         builder.Services.AddHangfire(configuration => configuration
-            .UseSqlServerStorage(builder.Configuration["ConnectionStrings:DefaultConnection"])); // Use your storage configuration
+            .UseSqlServerStorage(builder.Configuration["ConnectionStrings:DefaultConnection"]));
 
         builder.Services.AddHangfireServer();
 
-        // Add other services
-        builder.Services.AddScoped<IReminderService, ReminderService>();
 
         var app = builder.Build();
 

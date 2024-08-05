@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TMP.Application.DTOs.SubtaskDtos;
 using TMP.Application.Interfaces;
+using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.Subtasks;
 using TMPDomain.Entities;
 using Task = TMPDomain.Entities.Task;
@@ -14,12 +15,14 @@ namespace TMPInfrastructure.Implementations.Subtasks
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<SubtaskService> _logger;
+        private readonly ICacheService _cache;
 
-        public SubtaskService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<SubtaskService> logger)
+        public SubtaskService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<SubtaskService> logger, ICacheService cache)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+            _cache = cache;
         }
 
         #region Read
@@ -72,6 +75,9 @@ namespace TMPInfrastructure.Implementations.Subtasks
             await _unitOfWork.Repository<Subtask>().SaveChangesAsync();
 
             _logger.LogInformation("Subtask for task with ID: {TaskId} added successfully", newSubtask.TaskId);
+
+            await _cache.DeleteKeyAsync($"task_{newSubtask.TaskId}_subtasks");
+
             return _mapper.Map<SubtaskDto>(subtask);
         }
         #endregion
@@ -94,6 +100,7 @@ namespace TMPInfrastructure.Implementations.Subtasks
             await _unitOfWork.Repository<Subtask>().SaveChangesAsync();
 
             _logger.LogInformation("Subtask with ID: {SubtaskId} updated successfully", id);
+            await _cache.DeleteKeyAsync($"task_{subtask.TaskId}_subtasks");
             return true;
         }
 

@@ -11,6 +11,8 @@ using TMP.Application.Interfaces;
 using TMPDomain.Entities;
 using TMP.Application.Hubs;
 using TaskEntity = TMPDomain.Entities.Task;
+using Amazon.Runtime.Internal.Util;
+using TMPApplication.Interfaces;
 
 namespace TMP.Infrastructure.Implementations
 {
@@ -20,13 +22,15 @@ namespace TMP.Infrastructure.Implementations
         private readonly IMapper _mapper;
         private readonly IHubContext<CommentHub> _commentHubContext;
         private readonly ILogger<CommentService> _logger;
+        private readonly ICacheService _cache;
 
-        public CommentService(IUnitOfWork unitOfWork, IMapper mapper, IHubContext<CommentHub> commentHubContext, ILogger<CommentService> logger)
+        public CommentService(IUnitOfWork unitOfWork, IMapper mapper, IHubContext<CommentHub> commentHubContext, ILogger<CommentService> logger, ICacheService cache)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _commentHubContext = commentHubContext;
             _logger = logger;
+            _cache = cache;
         }
 
         #region Read
@@ -94,6 +98,8 @@ namespace TMP.Infrastructure.Implementations
 
             _logger.LogInformation("Comment with ID: {CommentId} added successfully", comment.Id);
 
+            await _cache.DeleteKeyAsync($"task_{newComment.TaskId}_comments");
+
             return commentDto;
         }
         #endregion
@@ -116,6 +122,8 @@ namespace TMP.Infrastructure.Implementations
             await _unitOfWork.Repository<Comment>().SaveChangesAsync();
 
             _logger.LogInformation("Comment with ID: {CommentId} updated successfully", id);
+
+            await _cache.DeleteKeyAsync($"task_{updatedComment.TaskId}_comments");
 
             return true;
         }
