@@ -1,4 +1,4 @@
-name: Deploy Nginx
+name: Deploy BackEnd
 
 on:
   push:
@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       
-      IMAGE_TAG: latest
+      IMAGE_TAG: ${{ github.sha }}
     steps:
 
     - name: code checkout
@@ -32,7 +32,7 @@ jobs:
     - name: Deploy to GKE
       env:
         GOOGLE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-        IMG_TAG: latest
+        IMG_TAG: ${{ github.sha }}
       run: |
         gcloud container clusters get-credentials backend --region europe-central2-a
         sed -i "s/GOOGLE_PROJECT/$GOOGLE_PROJECT/g" resources.yaml
