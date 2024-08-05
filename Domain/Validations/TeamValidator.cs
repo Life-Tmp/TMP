@@ -27,11 +27,6 @@ namespace TMPDomain.Validations
                 .NotEmpty().WithMessage("UpdatedAt is required.")
                 .GreaterThanOrEqualTo(x => x.CreatedAt).WithMessage("UpdatedAt must be greater than or equal to CreatedAt.");
 
-            RuleFor(x => x.TeamMembers)
-                .NotNull().WithMessage("TeamMembers collection cannot be null.");
-
-            RuleFor(x => x.ProjectTeams)
-                .NotNull().WithMessage("ProjectTeams collection cannot be null.");
         }
     }
 }

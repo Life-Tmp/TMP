@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -27,18 +28,21 @@ namespace TMPInfrastructure.Implementations.Reminders
         private readonly INotificationService _notificationService;
         private readonly IMapper _mapper;
         private readonly IHttpContextAccessor _httpContextAccess;
+        private readonly IValidator<Reminder> _reminderValidator;
 
         public ReminderService(IUnitOfWork unitOfWork,
             ILogger<ReminderService> logger,
             INotificationService notificationService,
             IMapper mapper,
-            IHttpContextAccessor httpContextAccess)
+            IHttpContextAccessor httpContextAccess,
+            IValidator<Reminder> reminderValidator)
         {
             _unitOfWork = unitOfWork;
             _logger = logger;
             _notificationService = notificationService;
             _mapper = mapper;
             _httpContextAccess = httpContextAccess;
+            _reminderValidator = reminderValidator;
         }
 
         #region Read
@@ -108,6 +112,14 @@ namespace TMPInfrastructure.Implementations.Reminders
                 Task = task,
                 CreatedByUserId = createdByUserId
             };
+
+            // Validate the reminder entity
+            var validationResult = await _reminderValidator.ValidateAsync(reminder);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Reminder validation failed: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new ValidationException(validationResult.Errors);
+            }
 
             _unitOfWork.Repository<Reminder>().Create(reminder);
             _unitOfWork.Complete();
@@ -208,6 +220,14 @@ namespace TMPInfrastructure.Implementations.Reminders
             }
 
             _mapper.Map(reminderDto, reminderToUpdate);
+
+            // Validate the updated reminder entity
+            var validationResult = await _reminderValidator.ValidateAsync(reminderToUpdate);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Reminder validation failed: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new ValidationException(validationResult.Errors);
+            }
 
             _unitOfWork.Repository<Reminder>().Update(reminderToUpdate);
             _unitOfWork.Complete();

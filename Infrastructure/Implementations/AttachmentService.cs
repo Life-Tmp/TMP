@@ -1,4 +1,5 @@
-﻿using Amazon.S3;
+﻿using FluentValidation;
+using Amazon.S3;
 using Amazon.S3.Transfer;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
@@ -6,12 +7,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TMP.Application.Interfaces;
-using TMPApplication.AttachmentTasks;
-using TMPApplication.DTOs.AtachmentDtos;
 using TMPDomain.Entities;
 using TMPDomain.Exceptions;
+using TMPApplication.DTOs.AtachmentDtos;
+using TMPApplication.AttachmentTasks;
 
-namespace TMPInfrastructure.Implementations
+namespace TMP.Infrastructure.Implementations
 {
     public class AttachmentService : IAttachmentService
     {
@@ -20,6 +21,7 @@ namespace TMPInfrastructure.Implementations
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
         private readonly ILogger<AttachmentService> _logger;
+        private readonly IValidator<Attachment> _attachmentValidator;
 
         private static readonly HashSet<string> AllowedFileTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -33,13 +35,20 @@ namespace TMPInfrastructure.Implementations
             "application/vnd.openxmlformats-officedocument.presentationml.presentation"
         };
 
-        public AttachmentService(IAmazonS3 s3Client, IUnitOfWork unitOfWork, IConfiguration configuration, IMapper mapper, ILogger<AttachmentService> logger)
+        public AttachmentService(
+            IAmazonS3 s3Client,
+            IUnitOfWork unitOfWork,
+            IConfiguration configuration,
+            IMapper mapper,
+            ILogger<AttachmentService> logger,
+            IValidator<Attachment> attachmentValidator)
         {
             _s3Client = s3Client;
             _unitOfWork = unitOfWork;
             _configuration = configuration;
             _mapper = mapper;
             _logger = logger;
+            _attachmentValidator = attachmentValidator;
         }
 
         #region Upload Methods
@@ -78,6 +87,13 @@ namespace TMPInfrastructure.Implementations
                 UploadDate = DateTime.UtcNow,
                 TaskId = taskId
             };
+
+            var validationResult = await _attachmentValidator.ValidateAsync(attachment);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for attachment: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new ValidationException(validationResult.Errors);
+            }
 
             _unitOfWork.Repository<Attachment>().Create(attachment);
             _unitOfWork.Complete();

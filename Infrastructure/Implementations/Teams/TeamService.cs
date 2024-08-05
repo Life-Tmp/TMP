@@ -6,6 +6,8 @@ using TMP.Application.DTOs.TeamDtos;
 using TMP.Application.Interfaces;
 using TMPDomain.Entities;
 using TMPDomain.Enumerations;
+using TMPDomain.Validations;
+using FluentValidation;
 
 namespace TMP.Infrastructure.Implementations
 {
@@ -14,12 +16,24 @@ namespace TMP.Infrastructure.Implementations
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<TeamService> _logger;
+        private readonly IValidator<Team> _teamValidator;
+        private readonly IValidator<TeamMember> _teamMemberValidator;
+        private readonly IValidator<User> _userValidator;
 
-        public TeamService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<TeamService> logger)
+        public TeamService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            ILogger<TeamService> logger,
+            IValidator<Team> teamValidator,
+            IValidator<TeamMember> teamMemberValidator,
+            IValidator<User> userValidator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
+            _teamValidator = teamValidator;
+            _teamMemberValidator = teamMemberValidator;
+            _userValidator = userValidator;
         }
 
         #region Read
@@ -118,10 +132,20 @@ namespace TMP.Infrastructure.Implementations
         public async Task<TeamDto> AddTeamAsync(AddTeamDto newTeam, string userId)
         {
             _logger.LogInformation("Adding new team");
+
+            // Mapping and Validation
             var team = _mapper.Map<Team>(newTeam);
             team.CreatedAt = DateTime.UtcNow;
             team.UpdatedAt = DateTime.UtcNow;
 
+            var validationResult = await _teamValidator.ValidateAsync(team);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for new team: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new ValidationException(validationResult.Errors);
+            }
+
+            // Create Team and assign the creator as TeamLead
             _unitOfWork.Repository<Team>().Create(team);
             _unitOfWork.Complete();
 
@@ -131,6 +155,13 @@ namespace TMP.Infrastructure.Implementations
                 UserId = userId,
                 Role = MemberRole.TeamLead
             };
+
+            validationResult = await _teamMemberValidator.ValidateAsync(teamMember);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for team member: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new ValidationException(validationResult.Errors);
+            }
 
             _unitOfWork.Repository<TeamMember>().Create(teamMember);
             _unitOfWork.Complete();
@@ -143,12 +174,36 @@ namespace TMP.Infrastructure.Implementations
         public async Task<bool> AddUserToTeamAsync(AddTeamMemberDto addTeamMemberDto)
         {
             _logger.LogInformation("Adding user with ID: {UserId} to team with ID: {TeamId}", addTeamMemberDto.UserId, addTeamMemberDto.TeamId);
+
+            // Validate TeamMember
             var teamMember = new TeamMember
             {
                 TeamId = addTeamMemberDto.TeamId,
                 UserId = addTeamMemberDto.UserId,
                 Role = addTeamMemberDto.Role
             };
+
+            var validationResult = await _teamMemberValidator.ValidateAsync(teamMember);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for team member: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new ValidationException(validationResult.Errors);
+            }
+
+            // Check if user exists
+            var user = await _unitOfWork.Repository<User>().GetById(u => u.Id == addTeamMemberDto.UserId).FirstOrDefaultAsync();
+            if (user == null)
+            {
+                _logger.LogWarning("User with ID: {UserId} not found", addTeamMemberDto.UserId);
+                throw new Exception("User not found.");
+            }
+
+            validationResult = await _userValidator.ValidateAsync(user);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for user: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new ValidationException(validationResult.Errors);
+            }
 
             _unitOfWork.Repository<TeamMember>().Create(teamMember);
             await _unitOfWork.Repository<TeamMember>().SaveChangesAsync();
@@ -161,6 +216,7 @@ namespace TMP.Infrastructure.Implementations
         public async Task<bool> UpdateTeamAsync(int id, AddTeamDto updatedTeam)
         {
             _logger.LogInformation("Updating team with ID: {TeamId}", id);
+
             var team = await _unitOfWork.Repository<Team>().GetById(t => t.Id == id).FirstOrDefaultAsync();
             if (team == null)
             {
@@ -170,6 +226,14 @@ namespace TMP.Infrastructure.Implementations
 
             _mapper.Map(updatedTeam, team);
             team.UpdatedAt = DateTime.UtcNow;
+
+            var validationResult = await _teamValidator.ValidateAsync(team);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for updated team: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new ValidationException(validationResult.Errors);
+            }
+
             _unitOfWork.Repository<Team>().Update(team);
             var result = _unitOfWork.Complete();
             _logger.LogInformation("Team with ID: {TeamId} updated successfully", id);
@@ -179,6 +243,7 @@ namespace TMP.Infrastructure.Implementations
         public async Task<bool> UpdateUserRoleInTeamAsync(int teamId, string userId, MemberRole newRole)
         {
             _logger.LogInformation("Updating role of user with ID: {UserId} in team with ID: {TeamId}", userId, teamId);
+
             var teamMember = await _unitOfWork.Repository<TeamMember>()
                 .GetByCondition(tm => tm.TeamId == teamId && tm.UserId == userId)
                 .FirstOrDefaultAsync();
@@ -190,6 +255,14 @@ namespace TMP.Infrastructure.Implementations
             }
 
             teamMember.Role = newRole;
+
+            var validationResult = await _teamMemberValidator.ValidateAsync(teamMember);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for updated team member: {Errors}", string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                throw new ValidationException(validationResult.Errors);
+            }
+
             _unitOfWork.Repository<TeamMember>().Update(teamMember);
             await _unitOfWork.Repository<TeamMember>().SaveChangesAsync();
             _logger.LogInformation("Updated role of user with ID: {UserId} in team with ID: {TeamId} successfully", userId, teamId);
@@ -201,6 +274,7 @@ namespace TMP.Infrastructure.Implementations
         public async Task<bool> DeleteTeamAsync(int id)
         {
             _logger.LogInformation("Deleting team with ID: {TeamId}", id);
+
             var team = await _unitOfWork.Repository<Team>().GetById(t => t.Id == id).FirstOrDefaultAsync();
             if (team == null)
             {

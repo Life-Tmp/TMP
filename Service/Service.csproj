@@ -8,7 +8,10 @@
     <AssemblyName>TMP$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>TMP$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
   </PropertyGroup>
-
+	<PropertyGroup>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+	</PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.301" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.310.5" />

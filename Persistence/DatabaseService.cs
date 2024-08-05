@@ -66,6 +66,7 @@ namespace TMP.Persistence
             new TeamConfiguration().Configure(builder.Entity<Team>());
             new TeamConfiguration().Configure(builder.Entity<TeamMember>());
             new ProjectTeamConfiguration().Configure(builder.Entity<ProjectTeam>());
+            new ContactFormConfiguration().Configure(builder.Entity<ContactForm>());
         }
     }
 }

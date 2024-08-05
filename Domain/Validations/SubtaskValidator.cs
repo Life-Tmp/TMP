@@ -17,12 +17,7 @@ namespace TMPDomain.Validations
 
             RuleFor(x => x.CreatedAt)
                 .NotEmpty().WithMessage("CreatedAt is required.")
-                .LessThanOrEqualTo(DateTime.Now).WithMessage("CreatedAt cannot be in the future.");
-
-            RuleFor(x => x.CompletedAt)
-                .GreaterThanOrEqualTo(x => x.CreatedAt)
-                .When(x => x.CompletedAt.HasValue)
-                .WithMessage("CompletedAt must be greater than or equal to CreatedAt.");
+                .LessThanOrEqualTo(DateTime.Now).WithMessage("CreatedAt cannot be in the future.");;
 
             RuleFor(x => x.TaskId)
                 .GreaterThan(0).WithMessage("TaskId must be greater than 0.");

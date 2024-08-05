@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using FluentValidation;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,13 +16,15 @@ namespace TMP.Infrastructure.Implementations.Tags
         private readonly IMapper _mapper;
         private readonly ISearchService<TagDto> _searchService;
         private readonly ILogger<TagService> _logger;
+        private readonly IValidator<Tag> _tagValidator;
 
-        public TagService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<TagDto> searchService, ILogger<TagService> logger)
+        public TagService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<TagDto> searchService, ILogger<TagService> logger, IValidator<Tag> tagValidator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _searchService = searchService;
             _logger = logger;
+            _tagValidator = tagValidator;
         }
 
         #region Read
@@ -65,6 +66,14 @@ namespace TMP.Infrastructure.Implementations.Tags
 
             var tag = _mapper.Map<Tag>(newTag);
 
+            // Validate Tag
+            var validationResult = _tagValidator.Validate(tag);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Tag validation failed: {Errors}", string.Join(", ", validationResult.Errors));
+                throw new ValidationException(validationResult.Errors);
+            }
+
             _unitOfWork.Repository<Tag>().Create(tag);
             await _unitOfWork.Repository<Tag>().SaveChangesAsync();
 
@@ -89,6 +98,15 @@ namespace TMP.Infrastructure.Implementations.Tags
             }
 
             _mapper.Map(updatedTag, tag);
+
+            // Validate Tag
+            var validationResult = _tagValidator.Validate(tag);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Tag validation failed: {Errors}", string.Join(", ", validationResult.Errors));
+                throw new ValidationException(validationResult.Errors);
+            }
+
             _unitOfWork.Repository<Tag>().Update(tag);
             await _unitOfWork.Repository<Tag>().SaveChangesAsync();
             await _searchService.IndexDocumentAsync(_mapper.Map<TagDto>(tag), "tags");

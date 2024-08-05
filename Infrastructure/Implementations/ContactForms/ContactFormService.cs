@@ -3,11 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TMP.Application.DTOs.ContactFormDtos;
 using TMP.Application.Interfaces;
-using TMPApplication.Interfaces;
 using TMPApplication.Interfaces.ContactForms;
+using TMPApplication.Interfaces;
 using TMPDomain.Entities;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using FluentValidation;
 
 namespace TMP.Infrastructure.Implementations.ContactForms
 {
@@ -17,13 +16,20 @@ namespace TMP.Infrastructure.Implementations.ContactForms
         private readonly IMapper _mapper;
         private readonly IEmailService _emailService;
         private readonly ILogger<ContactFormService> _logger;
+        private readonly IValidator<ContactForm> _contactFormValidator;
 
-        public ContactFormService(IUnitOfWork unitOfWork, IMapper mapper, IEmailService emailService, ILogger<ContactFormService> logger)
+        public ContactFormService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IEmailService emailService,
+            ILogger<ContactFormService> logger,
+            IValidator<ContactForm> contactFormValidator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _emailService = emailService;
             _logger = logger;
+            _contactFormValidator = contactFormValidator;
         }
 
         #region Read
@@ -51,11 +57,22 @@ namespace TMP.Infrastructure.Implementations.ContactForms
         #endregion
 
         #region Create
-        public async Task<ContactFormDto> AddContactFormAsync(AddContactFormDto newContactForm)
+        public async Task<ContactFormDto> AddContactFormAsync(AddContactFormDto newContactFormDto)
         {
             _logger.LogInformation("Adding new contact form");
 
-            var contactForm = _mapper.Map<ContactForm>(newContactForm);
+            var contactForm = _mapper.Map<ContactForm>(newContactFormDto);
+
+            var validationResult = _contactFormValidator.Validate(contactForm);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for adding new contact form");
+                foreach (var error in validationResult.Errors)
+                {
+                    _logger.LogWarning("Validation Error: {Error}", error.ErrorMessage);
+                }
+                throw new ValidationException(validationResult.Errors);
+            }
 
             _unitOfWork.Repository<ContactForm>().Create(contactForm);
             await _unitOfWork.Repository<ContactForm>().SaveChangesAsync();

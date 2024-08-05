@@ -14,8 +14,7 @@ namespace TMPDomain.Validations
                 .NotNull().WithMessage("Project cannot be null.");
 
             RuleFor(x => x.UserId)
-                .NotEmpty().WithMessage("UserId cannot be empty.")
-                .Matches(@"^google-oauth2\|.*").WithMessage("UserId must be in the format 'google-oauth2|...'."); // Modify this regex as needed
+                .NotEmpty().WithMessage("UserId cannot be empty.");
 
             RuleFor(x => x.User)
                 .NotNull().WithMessage("User cannot be null.");

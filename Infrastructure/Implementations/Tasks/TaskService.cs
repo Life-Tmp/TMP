@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using Google.Apis.Calendar.v3.Data;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +15,7 @@ using TMPApplication.Notifications;
 using TMPCommon.Constants;
 using TMPDomain.Entities;
 using TMPDomain.Enumerations;
+using TMPDomain.Validations;
 using TMPInfrastructure.Implementations.CalendarApi;
 using Task = TMPDomain.Entities.Task;
 
@@ -29,15 +31,19 @@ namespace TMPInfrastructure.Implementations.Tasks
         private readonly ISearchService<TaskDto> _searchService;
         private readonly ILogger<TaskService> _logger;
         private readonly IGoogleCalendarService _googleCalendarService;
+        private readonly IValidator<Task> _taskValidator;
+        private readonly IValidator<TaskDuration> _taskDurationValidator;
 
         public TaskService(IUnitOfWork unitOfWork,
-            IMapper mapper,
-            INotificationService notificationService,
-            IHubContext<NotificationHub> notificationHub,
-            ICacheService cache,
-            ISearchService<TaskDto> searchService,
-            ILogger<TaskService> logger,
-            IGoogleCalendarService googleCalendarService)
+                           IMapper mapper,
+                           INotificationService notificationService,
+                           IHubContext<NotificationHub> notificationHub,
+                           ICacheService cache,
+                           ISearchService<TaskDto> searchService,
+                           ILogger<TaskService> logger,
+                           IGoogleCalendarService googleCalendarService,
+                           IValidator<Task> taskValidator,
+                           IValidator<TaskDuration> taskDurationValidator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -47,6 +53,8 @@ namespace TMPInfrastructure.Implementations.Tasks
             _searchService = searchService;
             _logger = logger;
             _googleCalendarService = googleCalendarService;
+            _taskValidator = taskValidator;
+            _taskDurationValidator = taskDurationValidator;
         }
 
         #region Read
@@ -240,6 +248,14 @@ namespace TMPInfrastructure.Implementations.Tasks
             var task = _mapper.Map<Task>(newTask);
             task.ProjectId = newTask.ProjectId;
 
+            var validationResult = await _taskValidator.ValidateAsync(task);
+            if (!validationResult.IsValid)
+            {
+                var errors = string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage));
+                _logger.LogWarning("Task validation failed: {Errors}", errors);
+                throw new ValidationException(errors);
+            }
+
             if (newTask.Tags != null && newTask.Tags.Any())
             {
                 task.Tags = new List<Tag>();
@@ -329,6 +345,14 @@ namespace TMPInfrastructure.Implementations.Tasks
             _mapper.Map(updatedTask, task);
             task.UpdatedAt = DateTime.UtcNow;
 
+            var validationResult = await _taskValidator.ValidateAsync(task);
+            if (!validationResult.IsValid)
+            {
+                var errors = string.Join("; ", validationResult.Errors.Select(e => e.ErrorMessage));
+                _logger.LogWarning("Task validation failed: {Errors}", errors);
+                throw new ValidationException(errors);
+            }
+
             // Handle tags
             var existingTags = task.Tags.Select(t => t.Name).ToList();
             var updatedTags = updatedTask.Tags ?? new List<string>();
@@ -391,6 +415,15 @@ namespace TMPInfrastructure.Implementations.Tasks
                     UserId = updateTaskStatusDto.UserId,
                     StartTime = DateTime.UtcNow
                 };
+
+                var durationValidationResult = await _taskDurationValidator.ValidateAsync(taskDuration);
+                if (!durationValidationResult.IsValid)
+                {
+                    var errors = string.Join("; ", durationValidationResult.Errors.Select(e => e.ErrorMessage));
+                    _logger.LogWarning("Task duration validation failed: {Errors}", errors);
+                    throw new ValidationException(errors);
+                }
+
                 _unitOfWork.Repository<TaskDuration>().Create(taskDuration);
             }
             else if (updateTaskStatusDto.Status == StatusOfTask.Done)
@@ -403,6 +436,15 @@ namespace TMPInfrastructure.Implementations.Tasks
                 if (taskDuration != null)
                 {
                     taskDuration.EndTime = DateTime.UtcNow;
+
+                    var durationValidationResult = await _taskDurationValidator.ValidateAsync(taskDuration);
+                    if (!durationValidationResult.IsValid)
+                    {
+                        var errors = string.Join("; ", durationValidationResult.Errors.Select(e => e.ErrorMessage));
+                        _logger.LogWarning("Task duration validation failed: {Errors}", errors);
+                        throw new ValidationException(errors);
+                    }
+
                     _unitOfWork.Repository<TaskDuration>().Update(taskDuration);
                 }
             }
@@ -420,12 +462,19 @@ namespace TMPInfrastructure.Implementations.Tasks
                     await _notificationHub.Clients.Group(user.Id).SendAsync("ReceiveNotifications", message);
                 }
             }
+
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.TaskById, task.Id));
             await _cache.DeleteKeyAsync(string.Format(TasksConstants.AllTasks));
 
             bool result = _unitOfWork.Complete();
-            _logger.LogInformation("Status of task with ID: {TaskId} updated to {Status} successfully", updateTaskStatusDto.TaskId, updateTaskStatusDto.Status);
-            return result;
+            if (!result)
+            {
+                _logger.LogWarning("Failed to update the status of task with ID: {TaskId}", updateTaskStatusDto.TaskId);
+                return false;
+            }
+
+            _logger.LogInformation("Status of task with ID: {TaskId} successfully updated to {Status}", updateTaskStatusDto.TaskId, updateTaskStatusDto.Status);
+            return true;
         }
         #endregion
 

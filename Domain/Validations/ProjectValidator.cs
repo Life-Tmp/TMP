@@ -32,27 +32,3 @@ namespace TMPDomain.Validations
         }
     }
 }
-
-public class ProjectUserValidator : AbstractValidator<ProjectUser>
-{
-    public ProjectUserValidator()
-    {
-        RuleFor(projectUser => projectUser.UserId)
-            .NotEmpty().WithMessage("User ID is required.");
-
-        RuleFor(projectUser => projectUser.ProjectId)
-            .NotEmpty().WithMessage("Project ID is required.");
-    }
-}
-
-public class ProjectTeamValidator : AbstractValidator<ProjectTeam>
-{
-    public ProjectTeamValidator()
-    {
-        RuleFor(projectTeam => projectTeam.TeamId)
-            .NotEmpty().WithMessage("Team ID is required.");
-
-        RuleFor(projectTeam => projectTeam.ProjectId)
-            .NotEmpty().WithMessage("Project ID is required.");
-    }
-}
