@@ -16,6 +16,8 @@ namespace TMP.Application.Interfaces
         DbSet<Comment> Comments { get; set; }
         DbSet<Notification> Notifications { get; set; }
 
+        DbSet<ContactForm> ContactForms { get; set; }
+
         void Save();
     }
 }

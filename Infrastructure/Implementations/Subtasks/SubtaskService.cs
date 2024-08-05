@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TMP.Application.DTOs.SubtaskDtos;
@@ -16,13 +17,15 @@ namespace TMPInfrastructure.Implementations.Subtasks
         private readonly IMapper _mapper;
         private readonly ILogger<SubtaskService> _logger;
         private readonly ICacheService _cache;
+        private readonly IValidator<Subtask> _subtaskValidator;
 
-        public SubtaskService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<SubtaskService> logger, ICacheService cache)
+        public SubtaskService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<SubtaskService> logger, ICacheService cache, IValidator<Subtask> subtaskValidator)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _logger = logger;
             _cache = cache;
+            _subtaskValidator = subtaskValidator;
         }
 
         #region Read
@@ -71,6 +74,15 @@ namespace TMPInfrastructure.Implementations.Subtasks
             }
 
             var subtask = _mapper.Map<Subtask>(newSubtask);
+
+            // Validate Subtask
+            var validationResult = _subtaskValidator.Validate(subtask);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Subtask validation failed: {Errors}", string.Join(", ", validationResult.Errors));
+                throw new ValidationException(validationResult.Errors);
+            }
+
             _unitOfWork.Repository<Subtask>().Create(subtask);
             await _unitOfWork.Repository<Subtask>().SaveChangesAsync();
 
@@ -95,6 +107,14 @@ namespace TMPInfrastructure.Implementations.Subtasks
             }
 
             _mapper.Map(updatedSubtask, subtask);
+
+            // Validate Subtask
+            var validationResult = _subtaskValidator.Validate(subtask);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Subtask validation failed: {Errors}", string.Join(", ", validationResult.Errors));
+                throw new ValidationException(validationResult.Errors);
+            }
 
             _unitOfWork.Repository<Subtask>().Update(subtask);
             await _unitOfWork.Repository<Subtask>().SaveChangesAsync();

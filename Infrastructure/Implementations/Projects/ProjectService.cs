@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TMP.Application.DTOs.ProjectDtos;
@@ -10,9 +11,6 @@ using TMPApplication.Interfaces.Projects;
 using TMPCommon.Constants;
 using TMPDomain.Entities;
 using TMPDomain.Enumerations;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using TMPInfrastructure.Implementations.CalendarApi;
 
 namespace TMPInfrastructure.Implementations.Projects
@@ -23,12 +21,20 @@ namespace TMPInfrastructure.Implementations.Projects
         private readonly IMapper _mapper;
         private readonly ISearchService<ProjectDto> _searchService;
         private readonly ILogger<ProjectService> _logger;
-
+        private readonly IValidator<Project> _projectValidator;
+        private readonly IValidator<Column> _columnValidator;
         private readonly ICacheService _cache;
         private readonly IGoogleCalendarService _googleCalendarService;
 
-        public ProjectService(IUnitOfWork unitOfWork, IMapper mapper, ISearchService<ProjectDto> searchService, ILogger<ProjectService> logger, IGoogleCalendarService googleCalendarService, ICacheService cache)
-
+        public ProjectService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            ISearchService<ProjectDto> searchService,
+            ILogger<ProjectService> logger,
+            IValidator<Project> projectValidator,
+            IValidator<Column> columnValidator,
+            IGoogleCalendarService googleCalendarService,
+            ICacheService cache)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -36,6 +42,8 @@ namespace TMPInfrastructure.Implementations.Projects
             _logger = logger;
             _cache = cache;
             _googleCalendarService = googleCalendarService;
+            _projectValidator = projectValidator;
+            _columnValidator = columnValidator;
         }
 
         #region Read
@@ -233,6 +241,13 @@ namespace TMPInfrastructure.Implementations.Projects
             var project = _mapper.Map<Project>(newProject);
             project.CreatedByUserId = userId;
 
+            var validationResult = await _projectValidator.ValidateAsync(project);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for Project entity: {Errors}", validationResult.Errors);
+                throw new ValidationException(validationResult.Errors);
+            }
+
             project.Columns = new List<Column>();
 
             var defaultColumns = new List<string> { "To Do", "In Progress", "Done" };
@@ -241,6 +256,13 @@ namespace TMPInfrastructure.Implementations.Projects
                 var existingColumn = await _unitOfWork.Repository<Column>().GetByCondition(c => c.Name == columnName).FirstOrDefaultAsync();
                 if (existingColumn != null)
                 {
+                    var columnValidationResult = await _columnValidator.ValidateAsync(existingColumn);
+                    if (!columnValidationResult.IsValid)
+                    {
+                        _logger.LogWarning("Validation failed for Column entity: {Errors}", columnValidationResult.Errors);
+                        throw new ValidationException(columnValidationResult.Errors);
+                    }
+
                     project.Columns.Add(existingColumn);
                 }
                 else
@@ -295,6 +317,13 @@ namespace TMPInfrastructure.Implementations.Projects
                                                       .FirstOrDefaultAsync();
                 if (existingColumn != null)
                 {
+                    var columnValidationResult = await _columnValidator.ValidateAsync(existingColumn);
+                    if (!columnValidationResult.IsValid)
+                    {
+                        _logger.LogWarning("Validation failed for Column entity: {Errors}", columnValidationResult.Errors);
+                        throw new ValidationException(columnValidationResult.Errors);
+                    }
+
                     if (!project.Columns.Any(c => c.Name == columnName))
                     {
                         project.Columns.Add(existingColumn);
@@ -435,6 +464,13 @@ namespace TMPInfrastructure.Implementations.Projects
             }
 
             _mapper.Map(updatedProject, project);
+
+            var validationResult = await _projectValidator.ValidateAsync(project);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for Project entity: {Errors}", validationResult.Errors);
+                throw new ValidationException(validationResult.Errors);
+            }
 
             _unitOfWork.Repository<Project>().Update(project);
             await _unitOfWork.Repository<Project>().SaveChangesAsync();
@@ -671,6 +707,7 @@ namespace TMPInfrastructure.Implementations.Projects
             return numberOfProjects;
         }
         #endregion
+
         public async Task<bool> AddProjectCalendar(int projectId)
         {
             try

@@ -7,9 +7,10 @@ using System.Security.Claims;
 using TMP.Application.Interfaces;
 using TMPApplication.DTOs.NotificationDtos;
 using TMPApplication.Hubs;
-using TMPApplication.Notifications;
 using TMPDomain.Entities;
 using TMPInfrastructure.Messaging;
+using FluentValidation;
+using TMPApplication.Notifications;
 using Task = System.Threading.Tasks.Task;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,24 +29,27 @@ namespace TMPInfrastructure.Implementations.Notifications
         private readonly IHubContext<NotificationHub> _notificationHub;
         private readonly IMapper _mapper;
         private readonly ICacheService _cache;
+        private readonly IValidator<Notification> _notificationValidator;
 
         public NotificationService(
-            IUnitOfWork unitOfWork,
-            IHttpContextAccessor httpContextAccess,
-            RabbitMQService rabbitMQConfig,
-            ILogger<NotificationService> logger,
-            IHubContext<NotificationHub> notificationHub,
-            IMapper mapper,
-            ICacheService cache)
-        {
-            _logger = logger;
+                IUnitOfWork unitOfWork,
+                IHttpContextAccessor httpContextAccess,
+                RabbitMQService rabbitMQConfig,
+                ILogger<NotificationService> logger,
+                IHubContext<NotificationHub> notificationHub,
+                IMapper mapper,
+                ICacheService cache,
+                IValidator<Notification> notificationValidator)
+        { 
             _unitOfWork = unitOfWork;
             _httpContextAccess = httpContextAccess;
-            _rabbitMQConfig = rabbitMQConfig;
+            _logger = logger;
             _notificationHub = notificationHub;
             _mapper = mapper;
             _cache = cache;
+            _notificationValidator = notificationValidator;
         }
+
 
         #region Create
         public async Task CreateNotification(string userId, int? taskId, string message, string subject, string type)
@@ -62,6 +66,17 @@ namespace TMPInfrastructure.Implementations.Notifications
                 IsRead = false,
                 NotificationType = type
             };
+
+            var validationResult = _notificationValidator.Validate(notification);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Validation failed for creating notification");
+                foreach (var error in validationResult.Errors)
+                {
+                    _logger.LogWarning("Validation Error: {Error}", error.ErrorMessage);
+                }
+                throw new ValidationException(validationResult.Errors);
+            }
 
             _unitOfWork.Repository<Notification>().Create(notification);
             _unitOfWork.Complete();

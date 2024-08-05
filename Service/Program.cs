@@ -30,12 +30,14 @@ using TMPApplication.Interfaces.Reminders;
 using TMPApplication.Interfaces.Subtasks;
 using TMPApplication.Notifications;
 using TMPApplication.UserTasks;
+using TMPDomain.Entities;
 using TMPDomain.Validations;
 using TMPInfrastructure.Implementations;
 using TMPInfrastructure.Implementations.Notifications;
 using TMPInfrastructure.Implementations.Reminders;
 using TMPInfrastructure.Implementations.Subtasks;
 using TMPInfrastructure.Messaging;
+using Attachment = TMPDomain.Entities.Attachment;
 
 namespace TMP.Service;
 
@@ -64,6 +66,22 @@ class Program
         builder.Services.AddValidatorsFromAssemblyContaining<UserValidator>();
         builder.Services.AddEndpointsApiExplorer();
 
+        builder.Services.AddTransient<IValidator<Project>, ProjectValidator>();
+        builder.Services.AddTransient<IValidator<Column>, ColumnValidator>();
+        builder.Services.AddTransient<IValidator<Comment>, CommentValidator>();
+        builder.Services.AddTransient<IValidator<ContactForm>, ContactFormValidator>();
+        builder.Services.AddTransient<IValidator<Notification>, NotificationValidator>();
+        builder.Services.AddTransient<IValidator<ProjectTeam>, ProjectTeamValidator>();
+        builder.Services.AddTransient<IValidator<ProjectUser>, ProjectUserValidator>();
+        builder.Services.AddTransient<IValidator<Reminder>, ReminderValidator>();
+        builder.Services.AddTransient<IValidator<Subtask>, SubtaskValidator>(); 
+        builder.Services.AddTransient<IValidator<Tag>, TagValidator>();
+        builder.Services.AddTransient<IValidator<TaskDuration>, TaskDurationValidator>();
+        builder.Services.AddTransient<IValidator<TMPDomain.Entities.Task>, TaskValidator>();
+        builder.Services.AddTransient<IValidator<Attachment>, AttachmentValidator>();
+        builder.Services.AddTransient<IValidator<TeamMember>, TeamMemberValidator>();
+        builder.Services.AddTransient<IValidator<Team>, TeamValidator>();
+        builder.Services.AddTransient<IValidator<User>, UserValidator>();
         builder.Services.AddControllers();
 
         builder.Services.AddEndpointsApiExplorer();

@@ -6,7 +6,7 @@ using TMPApplication.Interfaces;
 
 namespace TMPInfrastructure.Implementations.CalendarApi
 {
-    public class GoogleCalendarService: IGoogleCalendarService
+    public class GoogleCalendarService: TMPApplication.Interfaces.IGoogleCalendarService
     {
         private readonly CalendarService _calendarService;
 

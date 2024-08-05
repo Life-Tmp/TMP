@@ -24,8 +24,6 @@ namespace TMPDomain.Validations
 			RuleFor(x => x.Task)
 				.NotNull().WithMessage("Task cannot be null.");
 
-			//RuleFor(x => x.JobId)
-			//	.Matches(@"^[a-zA-Z0-9-]+$").WithMessage("JobId must be alphanumeric with optional hyphens."); // Modify this regex as needed
 		}
 	}
 }

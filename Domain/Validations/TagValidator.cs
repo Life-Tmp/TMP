@@ -15,9 +15,6 @@ namespace TMPDomain.Validations
                 .NotEmpty().WithMessage("Name is required.")
                 .MaximumLength(100).WithMessage("Name must not exceed 100 characters.");
 
-            RuleFor(x => x.Tasks)
-                .NotNull().WithMessage("Tasks collection cannot be null.");
-            // Add more rules if necessary, depending on the specific requirements for the tasks collection.
         }
     }
 }

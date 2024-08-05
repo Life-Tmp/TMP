@@ -7,24 +7,17 @@ namespace TMPDomain.Validations
     {
         public NotificationValidator()
         {
-            RuleFor(notification => notification.UserId)
+            RuleFor(x => x.UserId)
                 .NotEmpty().WithMessage("User ID is required.");
 
-            RuleFor(notification => notification.Subject)
-                .NotEmpty().WithMessage("Subject is required.")
-                .MaximumLength(255).WithMessage("Subject cannot exceed 255 characters.");
-
-            RuleFor(notification => notification.Message)
+            RuleFor(x => x.Message)
                 .NotEmpty().WithMessage("Message is required.");
 
-            RuleFor(notification => notification.NotificationType)
-                .NotEmpty().WithMessage("Notification Type is required.");
+            RuleFor(x => x.Subject)
+                .NotEmpty().WithMessage("Subject is required.");
 
-            RuleFor(notification => notification.CreatedAt)
-                .LessThanOrEqualTo(DateTime.Now).WithMessage("Created date cannot be in the future.");
-
-            RuleFor(notification => notification.IsRead)
-                .NotNull().WithMessage("IsRead status is required.");
+            RuleFor(x => x.NotificationType)
+                .NotEmpty().WithMessage("Notification type is required.");
         }
     }
 }

@@ -44,26 +44,6 @@ namespace TMPDomain.Validations
             RuleFor(x => x.Project)
                 .NotNull().WithMessage("Project cannot be null.");
 
-            RuleFor(x => x.Comments)
-                .NotNull().WithMessage("Comments collection cannot be null.");
-
-            RuleFor(x => x.Attachments)
-                .NotNull().WithMessage("Attachments collection cannot be null.");
-
-            RuleFor(x => x.TaskDurations)
-                .NotNull().WithMessage("TaskDurations collection cannot be null.");
-
-            RuleFor(x => x.Reminders)
-                .NotNull().WithMessage("Reminders collection cannot be null.");
-
-            RuleFor(x => x.Subtasks)
-                .NotNull().WithMessage("Subtasks collection cannot be null.");
-
-            RuleFor(x => x.AssignedUsers)
-                .NotNull().WithMessage("AssignedUsers collection cannot be null.");
-
-            RuleFor(x => x.Tags)
-                .NotNull().WithMessage("Tags collection cannot be null.");
         }
     }
 }
