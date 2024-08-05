@@ -18,11 +18,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: back-demo
+  name: demo
 spec:
   type: NodePort
   selector:
-    app: back-demo
+    app: demo
   ports:
   - protocol: TCP
     port: 80
@@ -32,21 +32,21 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: back-demo
+  name: demo
   labels:
-    app: back-demo
+    app: demo
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: back-demo
+      app: demo
   template:
     metadata:
       labels:
-        app: back-demo
+        app: demo
     spec:
       containers:
-      - name: back-demo
+      - name: demo
         image: europe-central2-docker.pkg.dev/GOOGLE_PROJECT/docker-images/tma-back-image:IMAGE_TAG
         ports:
         - containerPort: 7001
